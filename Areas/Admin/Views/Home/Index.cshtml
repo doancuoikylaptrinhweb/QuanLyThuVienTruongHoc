@@ -1,0 +1,182 @@
+@using LibraryManagement.Models
+@model IList<tblBorrowTicket>
+
+<main id="main" class="main">
+
+    <div class="pagetitle">
+        <h1>Bảng Điều Khiển & Báo Cáo Thống Kê</h1>
+        <nav>
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/Admin">Trang chủ</a></li>
+                <li class="breadcrumb-item active">Báo cáo tổng quan</li>
+            </ol>
+        </nav>
+    </div>
+
+    <section class="section dashboard">
+        <div class="row">
+
+            <!-- Cột trái: Thẻ thống kê + Biểu đồ + Phiếu mượn gần đây -->
+            <div class="col-lg-12">
+                <div class="row">
+
+                    <!-- Thẻ 1: Tổng số sách -->
+                    <div class="col-xxl-4 col-md-4">
+                        <div class="card info-card sales-card">
+                            <div class="card-body">
+                                <h5 class="card-title">Tổng Đầu Sách <span>| Hiện có</span></h5>
+                                <div class="d-flex align-items-center">
+                                    <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                        <i class="bi bi-book text-primary"></i>
+                                    </div>
+                                    <div class="ps-3">
+                                        <h6>@ViewBag.TotalBooks</h6>
+                                        <span class="text-success small pt-1 fw-bold">Đầu sách</span> <span class="text-muted small pt-2 ps-1">trong kho</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Thẻ 2: Sách đang cho mượn -->
+                    <div class="col-xxl-4 col-md-4">
+                        <div class="card info-card revenue-card">
+                            <div class="card-body">
+                                <h5 class="card-title">Đang Cho Mượn <span>| Chưa trả</span></h5>
+                                <div class="d-flex align-items-center">
+                                    <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                        <i class="bi bi-journal-arrow-right text-success"></i>
+                                    </div>
+                                    <div class="ps-3">
+                                        <h6>@ViewBag.TotalBorrowing</h6>
+                                        <span class="text-warning small pt-1 fw-bold">Phiếu mượn</span> <span class="text-muted small pt-2 ps-1">chưa hoàn tất</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Thẻ 3: Tổng số độc giả -->
+                    <div class="col-xxl-4 col-md-4">
+                        <div class="card info-card customers-card">
+                            <div class="card-body">
+                                <h5 class="card-title">Độc Giả <span>| Đã đăng ký</span></h5>
+                                <div class="d-flex align-items-center">
+                                    <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                                        <i class="bi bi-people text-danger"></i>
+                                    </div>
+                                    <div class="ps-3">
+                                        <h6>@ViewBag.TotalUsers</h6>
+                                        <span class="text-danger small pt-1 fw-bold">Bạn đọc</span> <span class="text-muted small pt-2 ps-1">thành viên</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BIỂU ĐỒ THỐNG KÊ SÁCH THEO THỂ LOẠI (ApexCharts) -->
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Biểu đồ Phân bổ Sách theo Thể loại <span>| CSDL Thật</span></h5>
+
+                                <!-- Khung vẽ biểu đồ -->
+                                <div id="categoryChart"></div>
+
+                                <script>
+                                    document.addEventListener("DOMContentLoaded", () => {
+                                        new ApexCharts(document.querySelector("#categoryChart"), {
+                                            series: [{
+                                                name: 'Số lượng sách',
+                                                data: [@ViewBag.ChartData]
+                                            }],
+                                            chart: {
+                                                height: 350,
+                                                type: 'bar',
+                                                toolbar: { show: false }
+                                            },
+                                            colors: ['#4154f1'],
+                                            plotOptions: {
+                                                bar: {
+                                                    borderRadius: 6,
+                                                    columnWidth: '45%',
+                                                    distributed: true
+                                                }
+                                            },
+                                            xaxis: {
+                                                categories: [@Html.Raw(ViewBag.ChartLabels)],
+                                                labels: {
+                                                    style: { fontSize: '13px' }
+                                                }
+                                            },
+                                            yaxis: {
+                                                title: { text: 'Số lượng sách' }
+                                            }
+                                        }).render();
+                                    });
+                                </script>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BẢNG PHIẾU MƯỢN GẦN ĐÂY -->
+                    <div class="col-12">
+                        <div class="card recent-sales overflow-auto">
+                            <div class="card-body">
+                                <h5 class="card-title">Phiếu Mượn Gần Đây <span>| Cập nhật tự động</span></h5>
+
+                                <table class="table table-borderless align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Mã phiếu</th>
+                                            <th scope="col">Độc giả</th>
+                                            <th scope="col">Ngày mượn</th>
+                                            <th scope="col">Hạn trả</th>
+                                            <th scope="col">Trạng thái</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (Model.Count == 0)
+                                        {
+                                            <tr>
+                                                <td colspan="5" class="text-center text-muted">Chưa có giao dịch mượn sách nào.</td>
+                                            </tr>
+                                        }
+                                        else
+                                        {
+                                            var users = ViewBag.Users as Dictionary<int, string>;
+                                            foreach (var item in Model)
+                                            {
+                                                string userName = users != null && users.ContainsKey(item.UserID) ? users[item.UserID] : "Độc giả ẩn";
+                                                <tr>
+                                                    <th scope="row"><a href="/Admin/Borrow">#@item.TicketID</a></th>
+                                                    <td><strong>@userName</strong></td>
+                                                    <td>@item.BorrowDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                                    <td>@item.DueDate.ToString("dd/MM/yyyy")</td>
+                                                    <td>
+                                                        @if (item.Status == "Đang mượn")
+                                                        {
+                                                            <span class="badge bg-warning text-dark">Đang mượn</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-success">Đã trả</span>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            }
+                                        }
+                                    </tbody>
+                                </table>
+
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+</main>

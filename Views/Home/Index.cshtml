@@ -1,0 +1,103 @@
+﻿@using LibraryManagement.Models
+@using LibraryManagement.Utilities
+@model IList<tblBook>
+
+<!-- Thanh Banner & Tìm kiếm Sách Trực Tuyến -->
+<div class="bg-white p-4 p-md-5 rounded shadow-sm mb-4">
+    <div class="row align-items-center">
+        <div class="col-md-7">
+            <h2 class="fw-bold text-primary mb-2">Tra Cứu Sách Trực Tuyến</h2>
+            <p class="text-muted mb-4">Tìm kiếm hàng ngàn đầu sách giáo trình, tài liệu tham khảo và văn học trong thư viện.</p>
+            
+            <form method="get" asp-controller="Home" asp-action="Index" class="d-flex gap-2">
+                <input type="text" name="searchString" class="form-control form-control-lg" 
+                       placeholder="Nhập tên sách hoặc tóm tắt cần tìm..." value="@ViewBag.SearchString">
+                <button type="submit" class="btn btn-primary btn-lg px-4">
+                    <i class="bi bi-search"></i> Tìm
+                </button>
+            </form>
+        </div>
+        <div class="col-md-5 text-center d-none d-md-block">
+            <i class="bi bi-journal-bookmark-fill text-primary" style="font-size: 8rem; opacity: 0.85;"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Bộ lọc theo Thể loại sách -->
+<div class="mb-4">
+    <h5 class="fw-bold mb-3"><i class="bi bi-funnel me-1"></i> Lọc theo danh mục:</h5>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="/" class="btn btn-sm @(ViewBag.SelectedCategory == null ? "btn-primary" : "btn-outline-primary")">Tất cả</a>
+        @if (ViewBag.Categories != null)
+        {
+            foreach (var cat in (List<tblCategory>)ViewBag.Categories)
+            {
+                <a href="/?categoryId=@cat.CategoryID" 
+                   class="btn btn-sm @(ViewBag.SelectedCategory == cat.CategoryID ? "btn-primary" : "btn-outline-primary")">
+                    @cat.CategoryName
+                </a>
+            }
+        }
+    </div>
+</div>
+
+<!-- Lưới hiển thị danh sách Sách -->
+<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+    @if (Model.Count == 0)
+    {
+        <div class="col-12 text-center py-5">
+            <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+            <h5 class="text-muted mt-2">Không tìm thấy cuốn sách nào phù hợp!</h5>
+            <a href="/" class="btn btn-outline-secondary mt-2">Xem tất cả sách</a>
+        </div>
+    }
+    else
+    {
+        var authors = ViewBag.Authors as Dictionary<int, string>;
+
+        foreach (var item in Model)
+        {
+            // TẠO ĐƯỜNG DẪN SLUG THÂN THIỆN THEO LAB 05
+            string detailUrl = Functions.TitlesSlugGeneration("/sach", item.Title, item.BookID);
+            string authorName = authors != null && authors.ContainsKey(item.AuthorID) ? authors[item.AuthorID] : "Đang cập nhật";
+
+            <div class="col">
+                <div class="card h-100 book-card shadow-sm border-0">
+                    <a href="@detailUrl">
+                        <img src="@(item.Images != null && item.Images.StartsWith("/") ? item.Images : "/" + item.Images)" 
+                             class="card-img-top book-cover" alt="@item.Title" onerror="this.src='/admin/assets/img/card.jpg';">
+                    </a>
+                    <div class="card-body d-flex flex-column">
+                        <h6 class="card-title fw-bold mb-1">
+                            <a href="@detailUrl" class="text-decoration-none text-dark">@item.Title</a>
+                        </h6>
+                        <p class="text-muted small mb-2"><i class="bi bi-person me-1"></i> @authorName</p>
+                        
+                        <p class="card-text small text-secondary flex-grow-1">
+                            @(string.IsNullOrEmpty(item.Summary) ? "Chưa có mô tả ngắn..." : (item.Summary.Length > 80 ? item.Summary.Substring(0, 80) + "..." : item.Summary))
+                        </p>
+
+                        <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+                            @if (item.AvailableQuantity > 0)
+                            {
+                                <span class="badge bg-success-subtle text-success border border-success">
+                                    Còn @item.AvailableQuantity cuốn
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger-subtle text-danger border border-danger">
+                                    Đã hết sách
+                                </span>
+                            }
+
+                            <a href="@detailUrl" class="btn btn-outline-primary btn-sm">
+                                Chi tiết <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>

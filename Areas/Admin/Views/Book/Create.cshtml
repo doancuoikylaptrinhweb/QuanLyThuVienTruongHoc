@@ -1,0 +1,98 @@
+@using LibraryManagement.Models
+@model tblBook
+
+<main id="main" class="main">
+    <div class="pagetitle">
+        <h2>Thêm mới Sách vào Thư viện</h2>
+    </div>
+
+    <div class="card">
+        <div class="card-body mt-4">
+            <form method="post" asp-area="Admin" asp-controller="Book" asp-action="Create">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Tên sách</label>
+                        <input type="text" class="form-control" asp-for="Title" required placeholder="Nhập tên sách...">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Thể loại / Danh mục</label>
+                        <select class="form-select" asp-for="CategoryID" asp-items="ViewBag.CategoryList" required>
+                            <option value="">-- Chọn danh mục sách --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Tác giả</label>
+                        <select class="form-select" asp-for="AuthorID" asp-items="ViewBag.AuthorList" required>
+                            <option value="">-- Chọn tác giả --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Nhà xuất bản</label>
+                        <select class="form-select" asp-for="PublisherID" asp-items="ViewBag.PublisherList" required>
+                            <option value="">-- Chọn nhà xuất bản --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Năm xuất bản</label>
+                        <input type="number" class="form-control" asp-for="PublishYear" value="2024">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Số lượng nhập kho</label>
+                        <input type="number" class="form-control" asp-for="Quantity" value="10" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Thứ tự hiển thị</label>
+                        <input type="number" class="form-control" asp-for="PostOrder" value="1">
+                    </div>
+                </div>
+
+                <!-- CHỌN ẢNH BÌA TỪ ELFINDER (Lab 09 trang 18) -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Ảnh bìa sách</label>
+                    <div class="input-group">
+                        <button class="btn btn-success" type="button" onclick="openDialog()">
+                            <i class="bi bi-image"></i> Chọn ảnh từ thư viện
+                        </button>
+                        <input type="text" class="form-control" asp-for="Images" id="file_input" placeholder="Đường dẫn ảnh sẽ xuất hiện ở đây..." required>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Tóm tắt ngắn</label>
+                    <textarea class="form-control" asp-for="Summary" rows="2" placeholder="Tóm tắt ngắn nội dung sách..."></textarea>
+                </div>
+
+                <!-- SOẠN THẢO CHI TIẾT VỚI SUMMERNOTE (Lab 09 trang 19) -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Nội dung / Giới thiệu chi tiết</label>
+                    <textarea class="form-control" asp-for="Contents" id="Contents"></textarea>
+                </div>
+
+                <div class="form-check mb-4">
+                    <input class="form-check-input" type="checkbox" id="IsActive" name="IsActive" value="true" checked>
+                    <input type="hidden" name="IsActive" value="false">
+                    <label class="form-check-label" for="IsActive">Kích hoạt hiển thị lên trang chủ</label>
+                </div>
+
+                <a asp-area="Admin" asp-controller="Book" asp-action="Index" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left-circle"></i> Quay lại
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Lưu thông tin Sách
+                </button>
+            </form>
+        </div>
+    </div>
+</main>
+
+<!-- GỌI SUMMERNOTE CHO Ô TEXTAREA #Contents (Lab 09 trang 19) -->
+@{
+    var summerNote = new LibraryManagement.Areas.Admin.Models.SummerNote("#Contents");
+    <partial name="_SummerNote" model="summerNote" />
+}

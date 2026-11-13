@@ -1,0 +1,68 @@
+@using LibraryManagement.Models
+@model IList<tblCategory>
+
+<main id="main" class="main">
+    <div class="pagetitle">
+        <h2>Quản lý Danh mục Sách</h2>
+    </div>
+
+    <section class="section dashboard">
+        <div class="row">
+            <div class="col-12">
+                <div class="card recent-sales overflow-auto">
+                    <div class="card-body mt-4">
+                        <div class="d-flex justify-content-between mb-3">
+                            <h5 class="card-title">Danh sách thể loại</h5>
+                            <a class="btn btn-success" asp-area="Admin" asp-controller="Category" asp-action="Create">
+                                <i class="bi bi-plus-circle me-1"></i> Thêm mới danh mục
+                            </a>
+                        </div>
+
+                        <table class="table table-borderless datatable">
+                            <thead>
+                                <tr>
+                                    <th class="col-1 text-center">#</th>
+                                    <th class="col-4">Tên danh mục</th>
+                                    <th class="col-4">Mô tả</th>
+                                    <th class="col-1 text-center">Trạng thái</th>
+                                    <th class="col-2 text-center">Chức năng</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model)
+                                {
+                                    <tr>
+                                        <td class="text-center">@item.CategoryID</td>
+                                        <td><strong>@item.CategoryName</strong></td>
+                                        <td>@item.Description</td>
+                                        <td class="text-center">
+                                            @if (item.IsActive == true)
+                                            {
+                                                <span class="badge bg-success">Hiển thị</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">Ẩn</span>
+                                            }
+                                        </td>
+                                        <td class="text-center">
+                                            <a asp-area="Admin" asp-controller="Category" asp-action="Edit" asp-route-id="@item.CategoryID" 
+                                               class="btn btn-primary btn-sm" title="Sửa danh mục">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a asp-area="Admin" asp-controller="Category" asp-action="Delete" asp-route-id="@item.CategoryID" 
+                                               class="btn btn-danger btn-sm" title="Xóa danh mục">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>

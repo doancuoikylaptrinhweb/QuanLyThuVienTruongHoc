@@ -1,0 +1,50 @@
+@using LibraryManagement.Models
+@model tblBorrowTicket
+
+<main id="main" class="main">
+    <div class="pagetitle">
+        <h2>Lập Phiếu Mượn Sách Mới</h2>
+    </div>
+
+    <div class="card">
+        <div class="card-body mt-4">
+            <form method="post" asp-area="Admin" asp-controller="Borrow" asp-action="Create">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Chọn Độc giả mượn</label>
+                        <select class="form-select" asp-for="UserID" asp-items="ViewBag.UserList" required>
+                            <option value="">-- Chọn độc giả --</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Chọn Cuốn sách cần mượn</label>
+                        <select class="form-select" name="bookId" asp-items="ViewBag.BookList" required>
+                            <option value="">-- Chọn sách còn trên kệ --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Hạn phải trả sách</label>
+                        <input type="date" class="form-control" asp-for="DueDate" value="@DateTime.Now.AddDays(14).ToString("yyyy-MM-dd")" required>
+                        <small class="text-muted">Mặc định thời hạn mượn là 14 ngày</small>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Ghi chú (tình trạng sách lúc mượn)</label>
+                        <input type="text" class="form-control" asp-for="Note" placeholder="Ví dụ: Sách còn mới nguyên bìa...">
+                    </div>
+                </div>
+
+                <a asp-area="Admin" asp-controller="Borrow" asp-action="Index" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left-circle"></i> Quay lại
+                </a>
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-journal-plus"></i> Xác nhận cho mượn
+                </button>
+            </form>
+        </div>
+    </div>
+</main>

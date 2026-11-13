@@ -1,0 +1,36 @@
+@using LibraryManagement.Models
+@model tblCategory
+
+<main id="main" class="main">
+    <div class="pagetitle">
+        <h2>Xác nhận xóa danh mục</h2>
+    </div>
+
+    <div class="card">
+        <div class="card-body mt-4">
+            <div class="alert alert-danger" role="alert">
+                <i class="bi bi-exclamation-triangle-fill"></i> Bạn có chắc chắn muốn xóa danh mục này không? Thao tác này không thể hoàn tác!
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Mã danh mục:</label>
+                <input type="text" class="form-control" asp-for="CategoryID" disabled>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Tên danh mục:</label>
+                <input type="text" class="form-control" asp-for="CategoryName" disabled>
+            </div>
+
+            <form method="post" asp-area="Admin" asp-controller="Category" asp-action="Delete">
+                <input type="hidden" asp-for="CategoryID" />
+                <a asp-area="Admin" asp-controller="Category" asp-action="Index" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left-circle"></i> Hủy bỏ
+                </a>
+                <button type="submit" class="btn btn-danger">
+                    <i class="bi bi-trash"></i> Xác nhận xóa
+                </button>
+            </form>
+        </div>
+    </div>
+</main>

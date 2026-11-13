@@ -1,0 +1,82 @@
+@using LibraryManagement.Models
+@model IList<tblBorrowTicket>
+
+<main id="main" class="main">
+    <div class="pagetitle">
+        <h2>Quản lý Mượn / Trả Sách</h2>
+    </div>
+
+    <section class="section dashboard">
+        <div class="row">
+            <div class="col-12">
+                <div class="card recent-sales overflow-auto">
+                    <div class="card-body mt-4">
+                        <div class="d-flex justify-content-between mb-3">
+                            <h5 class="card-title">Danh sách phiếu mượn</h5>
+                            <a class="btn btn-success" asp-area="Admin" asp-controller="Borrow" asp-action="Create">
+                                <i class="bi bi-plus-circle me-1"></i> Lập phiếu mượn mới
+                            </a>
+                        </div>
+
+                        <table class="table table-bordered align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="text-center">Mã phiếu</th>
+                                    <th>Độc giả</th>
+                                    <th class="text-center">Ngày mượn</th>
+                                    <th class="text-center">Hạn trả</th>
+                                    <th class="text-center">Ngày thực trả</th>
+                                    <th class="text-center">Trạng thái</th>
+                                    <th class="text-center">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model)
+                                {
+                                    var users = ViewBag.Users as Dictionary<int, string>;
+                                    string userName = users != null && users.ContainsKey(item.UserID) ? users[item.UserID] : "Độc giả ẩn";
+
+                                    <tr>
+                                        <td class="text-center fw-bold">#@item.TicketID</td>
+                                        <td><strong>@userName</strong></td>
+                                        <td class="text-center">@item.BorrowDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                        <td class="text-center">@item.DueDate.ToString("dd/MM/yyyy")</td>
+                                        <td class="text-center">
+                                            @(item.ReturnDate.HasValue ? item.ReturnDate.Value.ToString("dd/MM/yyyy HH:mm") : "---")
+                                        </td>
+                                        <td class="text-center">
+                                            @if (item.Status == "Đang mượn")
+                                            {
+                                                <span class="badge bg-warning text-dark">Đang mượn</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-success">Đã trả</span>
+                                            }
+                                        </td>
+                                        <td class="text-center">
+                                            @if (item.Status == "Đang mượn")
+                                            {
+                                                <form method="post" asp-area="Admin" asp-controller="Borrow" asp-action="ReturnBook" asp-route-id="@item.TicketID" 
+                                                      onsubmit="return confirm('Xác nhận độc giả đã trả sách?');" style="display:inline-block;">
+                                                    <button type="submit" class="btn btn-sm btn-primary">
+                                                        <i class="bi bi-check2-circle"></i> Trả sách
+                                                    </button>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted"><i class="bi bi-check-all text-success"></i> Hoàn tất</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>

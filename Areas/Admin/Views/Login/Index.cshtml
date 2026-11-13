@@ -1,0 +1,74 @@
+@using LibraryManagement.Models
+@using LibraryManagement.Utilities
+@model tblUser
+@{
+    Layout = "";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Đăng nhập - Quản trị Thư viện</title>
+  <link href="/admin/assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="/admin/assets/css/style.css" rel="stylesheet">
+</head>
+
+<body>
+  <main>
+    <div class="container">
+      <section class="section register min-vh-100 d-flex flex-column align-items-center justify-content-center py-4">
+        <div class="container">
+          <div class="row justify-content-center">
+            <div class="col-lg-4 col-md-6 d-flex flex-column align-items-center justify-content-center">
+
+              <div class="d-flex justify-content-center py-4">
+                <span class="d-none d-lg-block fs-3 fw-bold text-primary">Library Admin</span>
+              </div>
+
+              <div class="card mb-3">
+                <div class="card-body">
+                  <div class="pt-4 pb-2">
+                    <h5 class="card-title text-center pb-0 fs-4">Đăng nhập tài khoản</h5>
+                    <p class="text-center small">Nhập tên tài khoản và mật khẩu của bạn</p>
+                  </div>
+
+                  <form class="row g-3" method="post" asp-area="Admin" asp-controller="Login" asp-action="Index">
+                    <div class="col-12">
+                      <label class="form-label">Tên đăng nhập</label>
+                      <input type="text" class="form-control" asp-for="UserName" required placeholder="Nhập username...">
+                    </div>
+
+                    <div class="col-12">
+                      <label class="form-label">Mật khẩu</label>
+                      <input type="password" class="form-control" asp-for="Password" required placeholder="Nhập mật khẩu...">
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Functions._Message))
+                    {
+                        <div class="col-12 text-center text-danger small fw-bold">
+                            @Functions._Message
+                        </div>
+                    }
+
+                    <div class="col-12">
+                      <button class="btn btn-primary w-100" type="submit">Đăng nhập</button>
+                    </div>
+
+                    <div class="col-12 text-center">
+                      <p class="small mb-0">Chưa có tài khoản? <a href="/Admin/Register">Tạo tài khoản ngay</a></p>
+                    </div>
+                  </form>
+
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

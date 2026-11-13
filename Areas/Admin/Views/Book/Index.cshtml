@@ -1,0 +1,80 @@
+@using LibraryManagement.Models
+@using PagedList.Core.Mvc
+@model PagedList.Core.IPagedList<tblBook>
+
+<main id="main" class="main">
+    <div class="pagetitle">
+        <h2>Kho Sách Thư Viện</h2>
+    </div>
+
+    <section class="section dashboard">
+        <div class="row">
+            <div class="col-12">
+                <div class="card recent-sales overflow-auto">
+                    <div class="card-body mt-4">
+                        <div class="d-flex justify-content-between mb-3">
+                            <h5 class="card-title">Danh sách sách hiện có</h5>
+                            <a class="btn btn-success" asp-area="Admin" asp-controller="Book" asp-action="Create">
+                                <i class="bi bi-plus-circle me-1"></i> Thêm sách mới
+                            </a>
+                        </div>
+
+                        <table class="table table-bordered align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="text-center">Ảnh bìa</th>
+                                    <th>Tên sách</th>
+                                    <th class="text-center">Số lượng</th>
+                                    <th class="text-center">Còn lại</th>
+                                    <th class="text-center">Trạng thái</th>
+                                    <th class="text-center">Chức năng</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model)
+                                {
+                                    <tr>
+                                        <td class="text-center" style="width: 80px;">
+                                            <img src="@(item.Images != null && item.Images.StartsWith("/") ? item.Images : "/" + item.Images)" 
+     alt="@item.Title" style="width: 60px; height: 80px; object-fit: cover; border-radius: 4px;" />
+                                        </td>
+                                        <td>
+                                            <strong class="text-primary">@item.Title</strong>
+                                            <div class="small text-muted">Năm XB: @item.PublishYear</div>
+                                        </td>
+                                        <td class="text-center">@item.Quantity</td>
+                                        <td class="text-center fw-bold text-success">@item.AvailableQuantity</td>
+                                        <td class="text-center">
+                                            @if (item.IsActive == true)
+                                            {
+                                                <span class="badge bg-success">Hiển thị</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">Ẩn</span>
+                                            }
+                                        </td>
+                                        <td class="text-center">
+                                            <form method="post" asp-area="Admin" asp-controller="Book" asp-action="Delete" asp-route-id="@item.BookID" 
+                                                  onsubmit="return confirm('Bạn có chắc chắn muốn xóa cuốn sách này?');" style="display:inline-block;">
+                                                <button type="submit" class="btn btn-danger btn-sm" title="Xóa sách">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+
+                        <!-- PHÂN TRANG (Lab 08 trang 5) -->
+                        <div class="d-flex justify-content-center mt-4">
+                            <pager class="pager-container" list="@Model" asp-area="Admin" asp-controller="Book" asp-action="Index" />
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>

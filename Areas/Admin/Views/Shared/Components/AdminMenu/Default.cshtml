@@ -1,0 +1,45 @@
+@using LibraryManagement.Models
+@model IList<tblAdminMenu>
+
+<aside id="sidebar" class="sidebar">
+  <ul class="sidebar-nav" id="sidebar-nav">
+
+    <!-- Lấy các Menu cấp 1 (ItemLevel == 1) -->
+    @foreach (var item in Model.Where(m => m.ItemLevel == 1).OrderBy(m => m.ItemOrder))
+    {
+        var pID = item.AdminMenuID;
+        var sMenu = Model.Where(p => p.ParentLevel == pID).OrderBy(p => p.ItemOrder).ToList();
+
+        @if (sMenu.Count == 0)
+        {
+            <!-- Menu cấp 1 không có menu con (ví dụ: Bảng điều khiển) -->
+            <li class="nav-item">
+              <a class="nav-link" href="/@item.AreaName/@item.ControllerName/@item.ActionName">
+                <i class="@item.Icon"></i>
+                <span>@item.ItemName</span>
+              </a>
+            </li>
+        }
+        else
+        {
+            <!-- Menu cấp 1 có menu con xổ xuống (Dropdown) -->
+            <li class="nav-item">
+              <a class="nav-link collapsed" data-bs-target="@item.ItemTarget" data-bs-toggle="collapse" href="#">
+                <i class="@item.Icon"></i><span>@item.ItemName</span><i class="bi bi-chevron-down ms-auto"></i>
+              </a>
+              <ul id="@item.IdName" class="nav-content collapse" data-bs-parent="#sidebar-nav">
+                @foreach (var smn in sMenu)
+                {
+                    <li>
+                      <a href="/@smn.AreaName/@smn.ControllerName/@smn.ActionName">
+                        <i class="@smn.Icon"></i><span>@smn.ItemName</span>
+                      </a>
+                    </li>
+                }
+              </ul>
+            </li>
+        }
+    }
+
+  </ul>
+</aside>

@@ -1,0 +1,256 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cổng Tra Cứu Thư Viện Trực Tuyến</title>
+    <!-- Dùng CSS Bootstrap của NiceAdmin sẵn có -->
+    <link href="/admin/assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/admin/assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+    <style>
+            .book-card {
+                transition: transform 0.2s, box-shadow 0.2s;
+                border-radius: 8px;
+                overflow: hidden;
+            }
+
+            .book-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+            }
+
+            .book-cover {
+                height: 250px;
+                object-fit: cover;
+                width: 100%;
+            }
+    </style>
+</head>
+
+<body class="bg-light">
+
+    <!-- Header Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm py-3">
+        <div class="container">
+            <a class="navbar-brand fw-bold fs-4" href="/">
+                <i class="bi bi-book-half me-2"></i> THƯ VIỆN ĐIỆN TỬ
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/"><i class="bi bi-house me-1"></i> Trang chủ</a>
+                    </li>
+                </ul>
+
+                <!-- Nút chuyển sang trang Quản trị Admin -->
+                <div class="d-flex">
+                    <a href="/Admin" class="btn btn-warning text-dark fw-bold">
+                        <i class="bi bi-shield-lock me-1"></i> Trang Quản Trị (Admin)
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Nội dung chính -->
+    <div class="container my-4">
+        @RenderBody()
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white text-center py-4 mt-5">
+        <div class="container">
+            <p class="mb-1"><strong>Hệ Thống Quản Lý Thư Viện Đại Học</strong></p>
+            <p class="text-muted small mb-0">&copy; 2026 - Phát triển trên nền tảng ASP.NET Core MVC</p>
+        </div>
+    </footer>
+
+    <script src="/admin/assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+</body>
+<!-- ================= CHATBOT AI WIDGET (MỤC 11) ================= -->
+<style>
+    /* Nút tròn nổi ở góc màn hình */
+    #chat-toggle-btn {
+        position: fixed;
+        bottom: 25px;
+        right: 25px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #0d6efd, #0dcaf0);
+        color: white;
+        border: none;
+        box-shadow: 0 4px 15px rgba(13, 110, 253, 0.4);
+        cursor: pointer;
+        z-index: 9999;
+        font-size: 26px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.3s ease;
+    }
+
+    #chat-toggle-btn:hover {
+        transform: scale(1.1);
+    }
+
+    /* Hộp thoại Chat */
+    #chat-window {
+        position: fixed;
+        bottom: 95px;
+        right: 25px;
+        width: 360px;
+        height: 480px;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        z-index: 9999;
+        display: none;
+        flex-direction: column;
+        overflow: hidden;
+        border: 1px solid #e0e0e0;
+    }
+
+    .chat-header {
+        background: #0d6efd;
+        color: white;
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .chat-body {
+        flex: 1;
+        padding: 14px;
+        overflow-y: auto;
+        background: #f8f9fa;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .msg-bubble {
+        max-width: 80%;
+        padding: 10px 14px;
+        border-radius: 14px;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+
+    .bot-msg {
+        background: white;
+        color: #333;
+        align-self: flex-start;
+        border-bottom-left-radius: 2px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+
+    .user-msg {
+        background: #0d6efd;
+        color: white;
+        align-self: flex-end;
+        border-bottom-right-radius: 2px;
+    }
+
+    .chat-footer {
+        padding: 10px;
+        background: white;
+        border-top: 1px solid #eee;
+        display: flex;
+        gap: 6px;
+    }
+</style>
+
+<!-- Nút bật Chatbot -->
+<button id="chat-toggle-btn" onclick="toggleChat()" title="Trợ lý Ảo AI">
+    <i class="bi bi-robot"></i>
+</button>
+
+<!-- Cửa sổ Chatbot -->
+<div id="chat-window">
+    <div class="chat-header">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-robot fs-4"></i>
+            <div>
+                <h6 class="mb-0 fw-bold">Trợ Lý Ảo Thư Viện</h6>
+                <small style="font-size: 11px; opacity: 0.85;">Trực tuyến 24/7</small>
+            </div>
+        </div>
+        <button class="btn btn-sm text-white" onclick="toggleChat()"><i class="bi bi-x-lg"></i></button>
+    </div>
+
+    <div class="chat-body" id="chatMessages">
+        <div class="msg-bubble bot-msg">
+            👋 Xin chào! Tôi là AI Thư viện. Bạn cần tìm sách gì hoặc cần hỗ trợ thông tin gì hôm nay?
+        </div>
+    </div>
+
+    <!-- Các gợi ý nhanh -->
+    <div class="px-2 py-1 bg-white border-top d-flex gap-1 overflow-auto" style="white-space: nowrap;">
+        <button class="btn btn-outline-secondary btn-sm py-0" style="font-size: 12px;"
+                onclick="sendQuick('Gợi ý sách hay')">Gợi ý sách</button>
+        <button class="btn btn-outline-secondary btn-sm py-0" style="font-size: 12px;"
+                onclick="sendQuick('Quy định mượn sách')">Cách mượn sách</button>
+    </div>
+
+    <div class="chat-footer">
+        <input type="text" id="chatInput" class="form-control form-control-sm" placeholder="Nhập câu hỏi của bạn..."
+               onkeypress="handleKey(event)">
+        <button class="btn btn-primary btn-sm px-3" onclick="sendMessage()"><i class="bi bi-send-fill"></i></button>
+    </div>
+</div>
+
+<!-- Script tương tác AJAX với Server -->
+<script>
+    function toggleChat() {
+        var chat = document.getElementById("chat-window");
+        chat.style.display = (chat.style.display === "flex") ? "none" : "flex";
+    }
+
+    function handleKey(e) {
+        if (e.key === "Enter") sendMessage();
+    }
+
+    function sendQuick(text) {
+        document.getElementById("chatInput").value = text;
+        sendMessage();
+    }
+
+    function sendMessage() {
+        var input = document.getElementById("chatInput");
+        var message = input.value.trim();
+        if (!message) return;
+
+        var container = document.getElementById("chatMessages");
+
+        // Hiển thị tin nhắn của người dùng
+        container.innerHTML += '<div class="msg-bubble user-msg">' + message + '</div>';
+        input.value = "";
+        container.scrollTop = container.scrollHeight;
+
+        // Gửi câu hỏi lên Server xử lý
+        var formData = new FormData();
+        formData.append("message", message);
+
+        fetch('/Home/ChatBot', {
+            method: 'POST',
+            body: formData
+        })
+            .then(res => res.json())
+            .then(data => {
+                container.innerHTML += '<div class="msg-bubble bot-msg">' + data.reply + '</div>';
+                container.scrollTop = container.scrollHeight;
+            })
+            .catch(err => {
+                container.innerHTML += '<div class="msg-bubble bot-msg text-danger">Có lỗi kết nối, vui lòng thử lại!</div>';
+            });
+    }
+</script>
+<!-- ================= HẾT CHATBOT AI WIDGET ================= -->
+
+</html>

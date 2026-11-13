@@ -1,0 +1,100 @@
+@model LibraryManagement.Areas.Admin.Models.SummerNote
+
+@if (Model.LoadLibrary)
+{
+    <script src="/admin/lib/snote/jquery.min.js"></script>
+    <script src="/admin/lib/snote/bootstrap.bundle.min.js"></script>
+    <link href="/admin/assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="/admin/lib/snote/summernote-bs4.min.js"></script>
+    <link rel="stylesheet" href="/admin/lib/snote/summernote-bs4.css" />
+
+    <link href="/admin/lib/jqueryui/themes/base/theme.css" rel="stylesheet" />
+    <link href="/admin/lib/jqueryui/themes/base/jquery-ui.css" rel="stylesheet" />
+    <link href="/admin/lib/elFinder/css/elfinder.full.css" rel="stylesheet" />
+    <link href="/admin/lib/elFinder/css/theme.css" rel="stylesheet" />
+
+    <script src="/admin/lib/jqueryui/jquery-ui.js"></script>
+    <script src="/admin/lib/elFinder/js/elfinder.min.js"></script>
+}
+
+<script>
+    (function (factory) {
+        if (typeof define === 'function' && define.amd) {
+            define(['jquery'], factory);
+        } else if (typeof module === 'object' && module.exports) {
+            module.exports = factory(require('jquery'));
+        } else {
+            factory(window.jQuery);
+        }
+    }(function ($) {
+        $.extend($.summernote.plugins, {
+            'elfinder': function (context) {
+                var self = this;
+                var ui = $.summernote.ui;
+                context.memo('button.elfinder', function () {
+                    var button = ui.button({
+                        contents: '<i class="note-icon-picture"/> Ảnh',
+                        tooltip: 'Quản lý ảnh',
+                        click: function () {
+                            elfinderDialog(context);
+                        }
+                    });
+                    return button.render();
+                });
+                this.destroy = function () {
+                    this.$panel.remove();
+                    this.$panel = null;
+                };
+            }
+        });
+    }));
+
+    function elfinderDialog(editor) {
+        var fm = $('<div/>').dialogelfinder({
+            baseUrl: "/admin/lib/elFinder/",
+            url: "/Admin/connector",
+            lang: 'vi',
+            width: 900,
+            height: 500,
+            destroyOnClose: true,
+            getFileCallback: function (files, fm) {
+                editor.invoke('editor.insertImage', files.url);
+            },
+            commandsOptions: {
+                getfile: {
+                    oncomplete: 'close',
+                    folders: false
+                }
+            }
+        }).dialogelfinder('instance');
+    }
+
+    // Hàm mở popup chọn ảnh bìa đưa link vào ô input
+    function openDialog() {
+        var fm = $('<div/>').dialogelfinder({
+            baseUrl: "/admin/lib/elFinder/",
+            url: "/Admin/connector",
+            lang: 'vi',
+            width: 900,
+            height: 500,
+            destroyOnClose: true,
+            closeOnEditorCallback: true,
+            getFileCallback: function (files) {
+                document.getElementById('file_input').value = files.url;
+            },
+            commandsOptions: {
+                getfile: {
+                    oncomplete: 'close',
+                    folders: false
+                }
+            }
+        }).dialogelfinder('instance');
+    }
+
+    $(document).ready(function () {
+        $('@Model.IDEditor').summernote({
+            height: @Model.Height,
+            toolbar: @Html.Raw(Model.toolBar)
+        });
+    });
+</script>

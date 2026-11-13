@@ -1,0 +1,36 @@
+@using LibraryManagement.Models
+@model tblCategory
+
+<main id="main" class="main">
+    <div class="pagetitle">
+        <h2>Thêm mới danh mục sách</h2>
+    </div>
+
+    <div class="card">
+        <div class="card-body mt-4">
+            <form method="post" asp-area="Admin" asp-controller="Category" asp-action="Create">
+                <div class="mb-3">
+                    <label class="form-label">Tên danh mục sách</label>
+                    <input type="text" class="form-control" asp-for="CategoryName" required placeholder="Nhập tên thể loại sách (ví dụ: Công nghệ thông tin, Kinh tế...)">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Mô tả chi tiết</label>
+                    <textarea class="form-control" asp-for="Description" rows="3" placeholder="Nhập mô tả ngắn về danh mục này"></textarea>
+                </div>
+
+                <div class="form-check mb-4">
+                    <input class="form-check-input" type="checkbox" asp-for="IsActive" checked>
+                    <label class="form-check-label">Kích hoạt hiển thị</label>
+                </div>
+
+                <a asp-area="Admin" asp-controller="Category" asp-action="Index" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left-circle"></i> Quay lại
+                </a>
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-save"></i> Lưu thông tin
+                </button>
+            </form>
+        </div>
+    </div>
+</main>

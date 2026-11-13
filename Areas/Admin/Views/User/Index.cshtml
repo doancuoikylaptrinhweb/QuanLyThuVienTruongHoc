@@ -1,0 +1,90 @@
+@using LibraryManagement.Models
+@model IList<tblUser>
+
+<main id="main" class="main">
+    <div class="pagetitle">
+        <h2>Quản lý Độc giả & Phân quyền</h2>
+    </div>
+
+    <section class="section dashboard">
+        <div class="row">
+            <div class="col-12">
+                <div class="card recent-sales overflow-auto">
+                    <div class="card-body mt-4">
+
+                        @if (TempData["Error"] != null)
+                        {
+                            <div class="alert alert-danger">@TempData["Error"]</div>
+                        }
+
+                        <form method="get" class="d-flex mb-3">
+                            <input type="text" name="keyword" value="@ViewBag.Keyword"
+                                class="form-control me-2" placeholder="Tìm theo tên, tài khoản, email..." />
+                            <button class="btn btn-primary">Tìm</button>
+                        </form>
+
+                        <table class="table table-borderless datatable">
+                            <thead>
+                                <tr>
+                                    <th class="text-center">#</th>
+                                    <th>Tài khoản</th>
+                                    <th>Họ tên</th>
+                                    <th>Email</th>
+                                    <th class="text-center">Quyền</th>
+                                    <th class="text-center">Trạng thái</th>
+                                    <th class="text-center">Chức năng</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model)
+                                {
+                                    <tr>
+                                        <td class="text-center">@item.UserID</td>
+                                        <td>@item.UserName</td>
+                                        <td><strong>@item.FullName</strong></td>
+                                        <td>@item.Email</td>
+                                        <td class="text-center">
+                                            <form asp-area="Admin" asp-controller="User" asp-action="ChangeRole" method="post"
+                                                onsubmit="return confirm('Đổi quyền người dùng này?');">
+                                                <input type="hidden" name="id" value="@item.UserID" />
+                                                <select name="role" class="form-select form-select-sm" onchange="this.form.requestSubmit()">
+                                                    <option value="Reader" selected="@(item.Role == "Reader")">Độc giả</option>
+                                                    <option value="Librarian" selected="@(item.Role == "Librarian")">Thủ thư</option>
+                                                    <option value="Admin" selected="@(item.Role == "Admin")">Admin</option>
+                                                </select>
+                                            </form>
+                                        </td>
+                                        <td class="text-center">
+                                            @if (item.IsActive == true)
+                                            {
+                                                <span class="badge bg-success">Hoạt động</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger">Đã khóa</span>
+                                            }
+                                        </td>
+                                        <td class="text-center">
+                                            <form asp-area="Admin" asp-controller="User" asp-action="ToggleActive" method="post"
+                                                onsubmit="return confirm('Xác nhận khóa/mở tài khoản này?');">
+                                                <input type="hidden" name="id" value="@item.UserID" />
+                                                @if (item.IsActive == true)
+                                                {
+                                                    <button class="btn btn-danger btn-sm" title="Khóa"><i class="bi bi-lock"></i></button>
+                                                }
+                                                else
+                                                {
+                                                    <button class="btn btn-success btn-sm" title="Mở khóa"><i class="bi bi-unlock"></i></button>
+                                                }
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
