@@ -1,256 +1,407 @@
-﻿<!DOCTYPE html>
+﻿@using LibraryManagement.Utilities
+<!DOCTYPE html>
 <html lang="vi">
 
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cổng Tra Cứu Thư Viện Trực Tuyến</title>
-    <!-- Dùng CSS Bootstrap của NiceAdmin sẵn có -->
+    <title>@(ViewData["Title"] ?? "Thư Viện Số - Trường Học Thông Minh")</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.gstatic.com" rel="preconnect">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap & Icons -->
     <link href="/admin/assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link href="/admin/assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+    
+    <!-- Custom Modern Library CSS -->
+    <link href="/css/modern-library.css" rel="stylesheet">
+
     <style>
-            .book-card {
-                transition: transform 0.2s, box-shadow 0.2s;
-                border-radius: 8px;
-                overflow: hidden;
-            }
-
-            .book-card:hover {
-                transform: translateY(-5px);
-                box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
-            }
-
-            .book-cover {
-                height: 250px;
-                object-fit: cover;
-                width: 100%;
-            }
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
     </style>
 </head>
 
-<body class="bg-light">
+<body>
 
-    <!-- Header Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm py-3">
+    <!-- 1. Top Announcement Bar (Header tím than đậm theo ảnh mẫu) -->
+    <div class="top-notice-bar">
+        <div class="container d-flex flex-wrap justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3 gap-md-4 small">
+                <span><i class="bi bi-clock me-1 text-primary"></i> Giờ mở cửa: 07:30 - 21:00 (T2 - T7)</span>
+                <span><i class="bi bi-telephone me-1 text-primary"></i> Hotline: (024) 3822-0801</span>
+            </div>
+            <div class="d-none d-md-block small">
+                <span><i class="bi bi-geo-alt me-1 text-primary"></i> Tòa nhà Trung Tâm Thông tin &amp; Thư viện</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Main Client Navbar -->
+    <nav class="navbar navbar-expand-lg client-navbar sticky-top">
         <div class="container">
-            <a class="navbar-brand fw-bold fs-4" href="/">
-                <i class="bi bi-book-half me-2"></i> THƯ VIỆN ĐIỆN TỬ
+            <!-- Brand Logo -->
+            <a class="navbar-brand d-flex align-items-center gap-2 text-decoration-none me-3" href="/">
+                <div class="brand-badge-icon">
+                    <i class="bi bi-book-half"></i>
+                </div>
+                <div>
+                    <div class="brand-title">THƯ VIỆN SỐ</div>
+                    <div class="brand-sub">TRƯỜNG HỌC THÔNG MINH</div>
+                </div>
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+
+            <!-- Mobile Toggler -->
+            <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#clientNavbarContent">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            <div class="collapse navbar-collapse" id="navbarContent">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+
+            <!-- Navbar Links & Search -->
+            <div class="collapse navbar-collapse" id="clientNavbarContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 gap-1">
                     <li class="nav-item">
-                        <a class="nav-link active" href="/"><i class="bi bi-house me-1"></i> Trang chủ</a>
+                        <a class="nav-link nav-link-modern active" href="/">
+                            <i class="bi bi-house"></i> Trang chủ
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-modern" href="#tim-kiem">
+                            <i class="bi bi-search"></i> Tra cứu sách
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-modern" href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#noiQuyModal">
+                            <i class="bi bi-journal-text"></i> Nội quy mượn trả
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-modern" href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#gioiThieuModal">
+                            <i class="bi bi-info-circle"></i> Giới thiệu
+                        </a>
                     </li>
                 </ul>
 
-                <!-- Nút chuyển sang trang Quản trị Admin -->
-                <div class="d-flex">
-                    <a href="/Admin" class="btn btn-warning text-dark fw-bold">
-                        <i class="bi bi-shield-lock me-1"></i> Trang Quản Trị (Admin)
+                <!-- Navbar Quick Search -->
+                <form method="get" action="/" class="d-flex position-relative me-3 my-2 my-lg-0">
+                    <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+                    <input type="text" name="searchString" class="nav-search-input" placeholder="Tìm tên sách, ISBN..." value="@ViewBag.SearchString">
+                </form>
+
+                <!-- Action Buttons: Trang Quản Trị & Phiếu Mượn & User -->
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <a href="/Admin" class="btn-admin-pill">
+                        <i class="bi bi-shield-lock-fill"></i> Trang Quản Trị
                     </a>
+
+                    <button type="button" class="btn-ticket-pill" data-bs-toggle="modal" data-bs-target="#myTicketsModal">
+                        <i class="bi bi-card-checklist text-primary"></i> Phiếu mượn của tôi
+                    </button>
+
+                    <!-- User Profile Dropdown -->
+                    <div class="dropdown">
+                        <a class="d-flex align-items-center gap-2 text-decoration-none dropdown-toggle ps-1" href="#" data-bs-toggle="dropdown">
+                            <div class="purple-avatar">N</div>
+                            <span class="d-none d-xl-inline fw-semibold text-dark small">
+                                @(string.IsNullOrEmpty(Functions._UserName) ? "Nguyễn Quản Trị..." : (Functions._UserName.Length > 16 ? Functions._UserName.Substring(0, 16) + "..." : Functions._UserName))
+                            </span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2" style="font-size: 13.5px;">
+                            <li class="dropdown-header text-start">
+                                <h6 class="mb-0 fw-bold">@(string.IsNullOrEmpty(Functions._UserName) ? "Nguyễn Quản Trị (Admin)" : Functions._UserName)</h6>
+                                <small class="text-muted">@(string.IsNullOrEmpty(Functions._Email) ? "admin@thuvien.edu.vn" : Functions._Email)</small>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="/Admin">
+                                    <i class="bi bi-speedometer2 text-primary"></i> Bảng điều khiển Admin
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#myTicketsModal">
+                                    <i class="bi bi-journal-check text-success"></i> Danh sách phiếu mượn
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2 text-danger" href="/Admin/Home/Logout">
+                                    <i class="bi bi-box-arrow-right"></i> Đăng xuất
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
+
             </div>
         </div>
     </nav>
 
-    <!-- Nội dung chính -->
+    <!-- Main Body Container -->
     <div class="container my-4">
         @RenderBody()
     </div>
 
     <!-- Footer -->
-    <footer class="bg-dark text-white text-center py-4 mt-5">
+    <footer class="bg-white border-top py-5 mt-5">
         <div class="container">
-            <p class="mb-1"><strong>Hệ Thống Quản Lý Thư Viện Đại Học</strong></p>
-            <p class="text-muted small mb-0">&copy; 2026 - Phát triển trên nền tảng ASP.NET Core MVC</p>
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <div class="brand-badge-icon" style="width: 36px; height: 36px; font-size: 18px;">
+                            <i class="bi bi-book-half"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-dark fs-6">THƯ VIỆN SỐ</div>
+                            <div class="text-muted small" style="font-size: 10px; letter-spacing: 0.5px;">TRƯỜNG HỌC THÔNG MINH</div>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-3" style="line-height: 1.6;">
+                        Hệ thống thư viện điện tử kết hợp trợ lý AI thông minh, hỗ trợ tra cứu sách trên kệ số, đặt mượn tài liệu trực tuyến 24/7 và gia hạn mượn tiện lợi.
+                    </p>
+                    <div class="d-flex gap-2">
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">ASP.NET Core MVC</span>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle">SQL Server</span>
+                        <span class="badge bg-info-subtle text-info border border-info-subtle">AI Chatbot</span>
+                    </div>
+                </div>
+
+                <div class="col-sm-6 col-lg-4">
+                    <h6 class="fw-bold text-dark mb-3">Thông Tin Liên Hệ</h6>
+                    <ul class="list-unstyled text-muted small d-flex flex-column gap-2 mb-0">
+                        <li><i class="bi bi-geo-alt text-primary me-2"></i> Tòa nhà Trung Tâm Thông tin &amp; Thư viện</li>
+                        <li><i class="bi bi-clock text-primary me-2"></i> Mở cửa: 07:30 - 21:00 (Thứ 2 đến Thứ 7)</li>
+                        <li><i class="bi bi-telephone text-primary me-2"></i> Hotline: (024) 3822-0801</li>
+                        <li><i class="bi bi-envelope text-primary me-2"></i> Email: thuvien@truonghoc.edu.vn</li>
+                    </ul>
+                </div>
+
+                <div class="col-sm-6 col-lg-4">
+                    <h6 class="fw-bold text-dark mb-3">Liên Kết Nhanh</h6>
+                    <ul class="list-unstyled text-muted small d-flex flex-column gap-2 mb-0">
+                        <li><a href="/" class="text-decoration-none text-muted"><i class="bi bi-chevron-right me-1 text-primary"></i> Trang chủ cổng thư viện</a></li>
+                        <li><a href="/Admin" class="text-decoration-none text-muted"><i class="bi bi-chevron-right me-1 text-primary"></i> Phân hệ dành cho Thủ thư &amp; Quản trị</a></li>
+                        <li><a href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#noiQuyModal" class="text-decoration-none text-muted"><i class="bi bi-chevron-right me-1 text-primary"></i> Nội quy mượn trả tài liệu</a></li>
+                        <li><a href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#myTicketsModal" class="text-decoration-none text-muted"><i class="bi bi-chevron-right me-1 text-primary"></i> Tra cứu phiếu mượn cá nhân</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <hr class="my-4 text-muted opacity-25">
+
+            <div class="d-flex flex-wrap justify-content-between align-items-center small text-muted">
+                <div>&copy; 2026 <strong>Thư Viện Số - Trường Học Thông Minh</strong>. Đồ án xây dựng trên nền tảng ASP.NET Core.</div>
+                <div>Thiết kế giao diện hiện đại Visual Blue Theme.</div>
+            </div>
         </div>
     </footer>
 
-    <script src="/admin/assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-</body>
-<!-- ================= CHATBOT AI WIDGET (MỤC 11) ================= -->
-<style>
-    /* Nút tròn nổi ở góc màn hình */
-    #chat-toggle-btn {
-        position: fixed;
-        bottom: 25px;
-        right: 25px;
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #0d6efd, #0dcaf0);
-        color: white;
-        border: none;
-        box-shadow: 0 4px 15px rgba(13, 110, 253, 0.4);
-        cursor: pointer;
-        z-index: 9999;
-        font-size: 26px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: transform 0.3s ease;
-    }
-
-    #chat-toggle-btn:hover {
-        transform: scale(1.1);
-    }
-
-    /* Hộp thoại Chat */
-    #chat-window {
-        position: fixed;
-        bottom: 95px;
-        right: 25px;
-        width: 360px;
-        height: 480px;
-        background: white;
-        border-radius: 16px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        z-index: 9999;
-        display: none;
-        flex-direction: column;
-        overflow: hidden;
-        border: 1px solid #e0e0e0;
-    }
-
-    .chat-header {
-        background: #0d6efd;
-        color: white;
-        padding: 12px 16px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-
-    .chat-body {
-        flex: 1;
-        padding: 14px;
-        overflow-y: auto;
-        background: #f8f9fa;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .msg-bubble {
-        max-width: 80%;
-        padding: 10px 14px;
-        border-radius: 14px;
-        font-size: 14px;
-        line-height: 1.4;
-    }
-
-    .bot-msg {
-        background: white;
-        color: #333;
-        align-self: flex-start;
-        border-bottom-left-radius: 2px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-    }
-
-    .user-msg {
-        background: #0d6efd;
-        color: white;
-        align-self: flex-end;
-        border-bottom-right-radius: 2px;
-    }
-
-    .chat-footer {
-        padding: 10px;
-        background: white;
-        border-top: 1px solid #eee;
-        display: flex;
-        gap: 6px;
-    }
-</style>
-
-<!-- Nút bật Chatbot -->
-<button id="chat-toggle-btn" onclick="toggleChat()" title="Trợ lý Ảo AI">
-    <i class="bi bi-robot"></i>
-</button>
-
-<!-- Cửa sổ Chatbot -->
-<div id="chat-window">
-    <div class="chat-header">
-        <div class="d-flex align-items-center gap-2">
-            <i class="bi bi-robot fs-4"></i>
-            <div>
-                <h6 class="mb-0 fw-bold">Trợ Lý Ảo Thư Viện</h6>
-                <small style="font-size: 11px; opacity: 0.85;">Trực tuyến 24/7</small>
+    <!-- MODAL 1: NỘI QUY MƯỢN TRẢ -->
+    <div class="modal fade" id="noiQuyModal" tabindex="-1" aria-labelledby="noiQuyModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-primary text-white rounded-top-4">
+                    <h5 class="modal-title fw-bold" id="noiQuyModalLabel"><i class="bi bi-journal-text me-2"></i> Nội Quy Mượn Trả Sách</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <ul class="list-group list-group-flush small">
+                        <li class="list-group-item d-flex gap-2 align-items-start px-0">
+                            <i class="bi bi-check-circle-fill text-success fs-6 mt-1"></i>
+                            <div><strong>Đối tượng mượn:</strong> Toàn thể sinh viên, học viên và giảng viên có thẻ thư viện còn hiệu lực.</div>
+                        </li>
+                        <li class="list-group-item d-flex gap-2 align-items-start px-0">
+                            <i class="bi bi-check-circle-fill text-success fs-6 mt-1"></i>
+                            <div><strong>Thời hạn mượn:</strong> Tối đa <strong>14 ngày</strong> cho mỗi lần mượn, có thể gia hạn trực tuyến 1 lần (thêm 7 ngày).</div>
+                        </li>
+                        <li class="list-group-item d-flex gap-2 align-items-start px-0">
+                            <i class="bi bi-check-circle-fill text-success fs-6 mt-1"></i>
+                            <div><strong>Số lượng tài liệu:</strong> Mỗi bạn đọc được mượn tối đa <strong>3 cuốn sách</strong> cùng một thời điểm.</div>
+                        </li>
+                        <li class="list-group-item d-flex gap-2 align-items-start px-0">
+                            <i class="bi bi-exclamation-triangle-fill text-warning fs-6 mt-1"></i>
+                            <div><strong>Quy định bảo quản:</strong> Giữ gìn sách cẩn thận, không làm rách, viết vẽ bẩn hoặc đánh dấu mực lên tài liệu.</div>
+                        </li>
+                    </ul>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-primary rounded-pill px-4" data-bs-dismiss="modal">Đã hiểu</button>
+                </div>
             </div>
         </div>
-        <button class="btn btn-sm text-white" onclick="toggleChat()"><i class="bi bi-x-lg"></i></button>
     </div>
 
-    <div class="chat-body" id="chatMessages">
-        <div class="msg-bubble bot-msg">
-            👋 Xin chào! Tôi là AI Thư viện. Bạn cần tìm sách gì hoặc cần hỗ trợ thông tin gì hôm nay?
+    <!-- MODAL 2: GIỚI THIỆU -->
+    <div class="modal fade" id="gioiThieuModal" tabindex="-1" aria-labelledby="gioiThieuModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-primary text-white rounded-top-4">
+                    <h5 class="modal-title fw-bold" id="gioiThieuModalLabel"><i class="bi bi-info-circle me-2"></i> Giới Thiệu Thư Viện Số</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 small">
+                    <p>Chào mừng bạn đến với <strong>Thư Viện Số - Trường Học Thông Minh</strong>! Đây là không gian tri thức mở được số hóa toàn diện giúp bạn đọc:</p>
+                    <div class="d-flex flex-column gap-2 my-3">
+                        <div class="p-2 rounded-3 bg-light border d-flex align-items-center gap-2">
+                            <i class="bi bi-search text-primary fs-5"></i>
+                            <span>Tra cứu nhanh hàng ngàn đầu sách giáo trình, công nghệ và văn học.</span>
+                        </div>
+                        <div class="p-2 rounded-3 bg-light border d-flex align-items-center gap-2">
+                            <i class="bi bi-robot text-primary fs-5"></i>
+                            <span>Trợ lý AI 24/7 giải đáp thắc mắc và gợi ý sách theo đúng chuyên ngành.</span>
+                        </div>
+                        <div class="p-2 rounded-3 bg-light border d-flex align-items-center gap-2">
+                            <i class="bi bi-geo-alt text-primary fs-5"></i>
+                            <span>Hiển thị chính xác vị trí tầng, kệ và ngăn sách trong kho thực tế.</span>
+                        </div>
+                    </div>
+                    <div class="text-muted">Phát triển với nền tảng ASP.NET Core &amp; SQL Server hiện đại.</div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Các gợi ý nhanh -->
-    <div class="px-2 py-1 bg-white border-top d-flex gap-1 overflow-auto" style="white-space: nowrap;">
-        <button class="btn btn-outline-secondary btn-sm py-0" style="font-size: 12px;"
-                onclick="sendQuick('Gợi ý sách hay')">Gợi ý sách</button>
-        <button class="btn btn-outline-secondary btn-sm py-0" style="font-size: 12px;"
-                onclick="sendQuick('Quy định mượn sách')">Cách mượn sách</button>
+    <!-- MODAL 3: PHIẾU MƯỢN CỦA TÔI -->
+    <div class="modal fade" id="myTicketsModal" tabindex="-1" aria-labelledby="myTicketsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-primary text-white rounded-top-4">
+                    <h5 class="modal-title fw-bold" id="myTicketsModalLabel"><i class="bi bi-card-checklist me-2"></i> Phiếu Mượn Sách Của Tôi</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" style="font-size: 13.5px;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Mã phiếu</th>
+                                    <th>Tên sách</th>
+                                    <th>Ngày mượn</th>
+                                    <th>Hạn trả</th>
+                                    <th>Trạng thái</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="badge" style="background: #eef2ff; color: #4338ca; font-weight: 600;">PM-202611-001</span></td>
+                                    <td><strong>Harry Potter và Hòn Đá Phù Thủy</strong></td>
+                                    <td>07/11/2026</td>
+                                    <td>21/11/2026</td>
+                                    <td><span class="badge" style="background: #dcfce7; color: #15803d; font-weight: 600; padding: 6px 12px; border-radius: 50px;">Đang mượn</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge" style="background: #eef2ff; color: #4338ca; font-weight: 600;">PM-202610-042</span></td>
+                                    <td><strong>Clean Code - Mã Sạch Thực Chiến</strong></td>
+                                    <td>15/10/2026</td>
+                                    <td>29/10/2026</td>
+                                    <td><span class="badge bg-secondary-subtle text-secondary" style="font-weight: 600; padding: 6px 12px; border-radius: 50px;">Đã trả</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="chat-footer">
-        <input type="text" id="chatInput" class="form-control form-control-sm" placeholder="Nhập câu hỏi của bạn..."
-               onkeypress="handleKey(event)">
-        <button class="btn btn-primary btn-sm px-3" onclick="sendMessage()"><i class="bi bi-send-fill"></i></button>
+    <!-- 3. CHATBOT AI FLOATING WIDGET (Trợ lý Thư viện AI 24/7) -->
+    <button id="modern-chatbot-btn" onclick="toggleModernChat()" title="Trợ lý Thư viện AI 24/7">
+        <i class="bi bi-robot"></i>
+    </button>
+
+    <div id="modern-chat-window">
+        <div class="chat-window-header">
+            <div class="d-flex align-items-center gap-2">
+                <div class="rounded-circle bg-white text-primary d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                    <i class="bi bi-robot fs-5"></i>
+                </div>
+                <div>
+                    <h6 class="mb-0 fw-bold text-white" style="font-size: 14.5px;">Trợ Lý AI Thư Viện</h6>
+                    <small style="font-size: 11px; opacity: 0.85;">Trực tuyến 24/7 • Hỗ trợ tìm sách</small>
+                </div>
+            </div>
+            <button class="btn btn-sm text-white p-0 border-0 fs-5" onclick="toggleModernChat()"><i class="bi bi-x-lg"></i></button>
+        </div>
+
+        <div class="chat-window-body" id="modernChatMessages">
+            <div class="chat-bubble chat-bot-bubble">
+                👋 Xin chào! Tôi là <strong>Trợ lý Ảo AI Thư viện</strong>. Bạn cần tìm sách gì, hướng dẫn thủ tục hay vị trí sách trên kệ nào hôm nay?
+            </div>
+        </div>
+
+        <!-- Quick Suggestions -->
+        <div class="px-3 py-2 bg-white border-top d-flex gap-1 overflow-auto" style="white-space: nowrap;">
+            <button class="btn btn-outline-primary btn-sm py-0 rounded-pill" style="font-size: 12px;" onclick="sendModernQuick('Gợi ý sách hay')">Gợi ý sách</button>
+            <button class="btn btn-outline-primary btn-sm py-0 rounded-pill" style="font-size: 12px;" onclick="sendModernQuick('Quy định mượn sách')">Quy định mượn</button>
+            <button class="btn btn-outline-primary btn-sm py-0 rounded-pill" style="font-size: 12px;" onclick="sendModernQuick('Tìm sách Clean Code')">Clean Code</button>
+        </div>
+
+        <div class="p-2 bg-white border-top d-flex gap-2">
+            <input type="text" id="modernChatInput" class="form-control form-control-sm rounded-pill px-3" placeholder="Nhập câu hỏi của bạn..." onkeypress="handleModernKey(event)">
+            <button class="btn btn-primary btn-sm rounded-circle d-flex align-items-center justify-content-center" style="width: 34px; height: 34px; flex-shrink: 0;" onclick="sendModernMessage()">
+                <i class="bi bi-send-fill" style="font-size: 13px;"></i>
+            </button>
+        </div>
     </div>
-</div>
 
-<!-- Script tương tác AJAX với Server -->
-<script>
-    function toggleChat() {
-        var chat = document.getElementById("chat-window");
-        chat.style.display = (chat.style.display === "flex") ? "none" : "flex";
-    }
+    <!-- Scripts -->
+    <script src="/admin/assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 
-    function handleKey(e) {
-        if (e.key === "Enter") sendMessage();
-    }
+    <script>
+        function toggleModernChat() {
+            var chat = document.getElementById("modern-chat-window");
+            chat.style.display = (chat.style.display === "flex") ? "none" : "flex";
+            if (chat.style.display === "flex") {
+                document.getElementById("modernChatInput").focus();
+            }
+        }
 
-    function sendQuick(text) {
-        document.getElementById("chatInput").value = text;
-        sendMessage();
-    }
+        function handleModernKey(e) {
+            if (e.key === "Enter") sendModernMessage();
+        }
 
-    function sendMessage() {
-        var input = document.getElementById("chatInput");
-        var message = input.value.trim();
-        if (!message) return;
+        function sendModernQuick(text) {
+            document.getElementById("modernChatInput").value = text;
+            sendModernMessage();
+        }
 
-        var container = document.getElementById("chatMessages");
+        function sendModernMessage() {
+            var input = document.getElementById("modernChatInput");
+            var message = input.value.trim();
+            if (!message) return;
 
-        // Hiển thị tin nhắn của người dùng
-        container.innerHTML += '<div class="msg-bubble user-msg">' + message + '</div>';
-        input.value = "";
-        container.scrollTop = container.scrollHeight;
+            var container = document.getElementById("modernChatMessages");
+            container.innerHTML += '<div class="chat-bubble chat-user-bubble">' + message + '</div>';
+            input.value = "";
+            container.scrollTop = container.scrollHeight;
 
-        // Gửi câu hỏi lên Server xử lý
-        var formData = new FormData();
-        formData.append("message", message);
+            var formData = new FormData();
+            formData.append("message", message);
 
-        fetch('/Home/ChatBot', {
-            method: 'POST',
-            body: formData
-        })
+            fetch('/Home/ChatBot', {
+                method: 'POST',
+                body: formData
+            })
             .then(res => res.json())
             .then(data => {
-                container.innerHTML += '<div class="msg-bubble bot-msg">' + data.reply + '</div>';
+                container.innerHTML += '<div class="chat-bubble chat-bot-bubble">' + data.reply + '</div>';
                 container.scrollTop = container.scrollHeight;
             })
             .catch(err => {
-                container.innerHTML += '<div class="msg-bubble bot-msg text-danger">Có lỗi kết nối, vui lòng thử lại!</div>';
+                container.innerHTML += '<div class="chat-bubble chat-bot-bubble text-danger">Có lỗi kết nối, vui lòng thử lại!</div>';
+                container.scrollTop = container.scrollHeight;
             });
-    }
-</script>
-<!-- ================= HẾT CHATBOT AI WIDGET ================= -->
+        }
+    </script>
 
+</body>
 </html>

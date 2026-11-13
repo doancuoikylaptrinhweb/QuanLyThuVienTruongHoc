@@ -1,45 +1,142 @@
 @using LibraryManagement.Models
+@using LibraryManagement.Utilities
 @model IList<tblAdminMenu>
 
-<aside id="sidebar" class="sidebar">
-  <ul class="sidebar-nav" id="sidebar-nav">
+@{
+    var currentCtrl = ViewContext.RouteData.Values["controller"]?.ToString() ?? "Home";
+    var currentAct = ViewContext.RouteData.Values["action"]?.ToString() ?? "Index";
+}
 
-    <!-- Lấy các Menu cấp 1 (ItemLevel == 1) -->
-    @foreach (var item in Model.Where(m => m.ItemLevel == 1).OrderBy(m => m.ItemOrder))
-    {
-        var pID = item.AdminMenuID;
-        var sMenu = Model.Where(p => p.ParentLevel == pID).OrderBy(p => p.ItemOrder).ToList();
+<aside id="sidebar" class="sidebar bg-white border-end shadow-none d-flex flex-column justify-content-between" style="width: 260px; min-height: 100vh;">
+    <div>
+        <!-- Top Logo in Sidebar -->
+        <div class="px-3 pt-3 pb-3 mb-2 border-bottom d-flex align-items-center gap-3">
+            <div class="rounded-3 d-flex align-items-center justify-content-center text-white shadow-sm" style="width: 40px; height: 40px; background: #2563eb; font-size: 20px;">
+                <i class="bi bi-book-half"></i>
+            </div>
+            <div>
+                <div class="fw-bold text-dark lh-1" style="font-size: 15px; letter-spacing: -0.2px;">QUẢN TRỊ VIÊN</div>
+                <small class="text-muted fw-semibold" style="font-size: 10.5px; letter-spacing: 0.8px;">THƯ VIỆN SỐ</small>
+            </div>
+        </div>
 
-        @if (sMenu.Count == 0)
-        {
-            <!-- Menu cấp 1 không có menu con (ví dụ: Bảng điều khiển) -->
-            <li class="nav-item">
-              <a class="nav-link" href="/@item.AreaName/@item.ControllerName/@item.ActionName">
-                <i class="@item.Icon"></i>
-                <span>@item.ItemName</span>
-              </a>
+        <ul class="sidebar-nav list-unstyled px-2" id="sidebar-nav">
+            <!-- TỔNG QUAN -->
+            <li class="nav-heading text-uppercase fw-bold text-muted px-3 mt-2 mb-1" style="font-size: 11px; letter-spacing: 0.6px;">TỔNG QUAN</li>
+            <li class="nav-item mb-1">
+                <a class="nav-link @(currentCtrl == "Home" && currentAct == "Index" ? "active text-white" : "text-secondary")" 
+                   href="/Admin/Home"
+                   style="@(currentCtrl == "Home" && currentAct == "Index" ? "background: #2563eb !important; border-radius: 10px; font-weight: 600;" : "border-radius: 10px; font-weight: 500;")">
+                    <i class="bi bi-grid-fill me-2 @(currentCtrl == "Home" && currentAct == "Index" ? "text-white" : "text-primary")"></i>
+                    <span>Bảng điều khiển</span>
+                </a>
             </li>
-        }
-        else
-        {
-            <!-- Menu cấp 1 có menu con xổ xuống (Dropdown) -->
-            <li class="nav-item">
-              <a class="nav-link collapsed" data-bs-target="@item.ItemTarget" data-bs-toggle="collapse" href="#">
-                <i class="@item.Icon"></i><span>@item.ItemName</span><i class="bi bi-chevron-down ms-auto"></i>
-              </a>
-              <ul id="@item.IdName" class="nav-content collapse" data-bs-parent="#sidebar-nav">
-                @foreach (var smn in sMenu)
-                {
-                    <li>
-                      <a href="/@smn.AreaName/@smn.ControllerName/@smn.ActionName">
-                        <i class="@smn.Icon"></i><span>@smn.ItemName</span>
-                      </a>
-                    </li>
-                }
-              </ul>
-            </li>
-        }
-    }
 
-  </ul>
+            <!-- NGHIỆP VỤ MƯỢN - TRẢ -->
+            <li class="nav-heading text-uppercase fw-bold text-muted px-3 mt-3 mb-1" style="font-size: 11px; letter-spacing: 0.6px;">NGHIỆP VỤ MƯỢN - TRẢ</li>
+            <li class="nav-item mb-1">
+                <a class="nav-link @(currentCtrl == "Borrow" && currentAct == "Index" ? "active text-white" : "text-secondary")" 
+                   href="/Admin/Borrow"
+                   style="@(currentCtrl == "Borrow" && currentAct == "Index" ? "background: #2563eb !important; border-radius: 10px; font-weight: 600;" : "border-radius: 10px; font-weight: 500;")">
+                    <i class="bi bi-card-checklist me-2 @(currentCtrl == "Borrow" && currentAct == "Index" ? "text-white" : "text-primary")"></i>
+                    <span>Quản lý phiếu mượn</span>
+                </a>
+            </li>
+            <li class="nav-item mb-1">
+                <a class="nav-link @(currentCtrl == "Borrow" && currentAct == "Create" ? "active text-white" : "text-secondary")" 
+                   href="/Admin/Borrow/Create"
+                   style="@(currentCtrl == "Borrow" && currentAct == "Create" ? "background: #2563eb !important; border-radius: 10px; font-weight: 600;" : "border-radius: 10px; font-weight: 500;")">
+                    <i class="bi bi-plus-circle me-2 @(currentCtrl == "Borrow" && currentAct == "Create" ? "text-white" : "text-primary")"></i>
+                    <span>Lập phiếu mượn mới</span>
+                </a>
+            </li>
+
+            <!-- KHO SÁCH & DỮ LIỆU -->
+            <li class="nav-heading text-uppercase fw-bold text-muted px-3 mt-3 mb-1" style="font-size: 11px; letter-spacing: 0.6px;">KHO SÁCH & DỮ LIỆU</li>
+            <li class="nav-item mb-1">
+                <a class="nav-link @(currentCtrl == "Book" ? "active text-white" : "text-secondary")" 
+                   href="/Admin/Book"
+                   style="@(currentCtrl == "Book" ? "background: #2563eb !important; border-radius: 10px; font-weight: 600;" : "border-radius: 10px; font-weight: 500;")">
+                    <i class="bi bi-book me-2 @(currentCtrl == "Book" ? "text-white" : "text-primary")"></i>
+                    <span>Quản lý sách</span>
+                </a>
+            </li>
+            <li class="nav-item mb-1">
+                <a class="nav-link @(currentCtrl == "Category" ? "active text-white" : "text-secondary")" 
+                   href="/Admin/Category"
+                   style="@(currentCtrl == "Category" ? "background: #2563eb !important; border-radius: 10px; font-weight: 600;" : "border-radius: 10px; font-weight: 500;")">
+                    <i class="bi bi-tags me-2 @(currentCtrl == "Category" ? "text-white" : "text-primary")"></i>
+                    <span>Danh mục thể loại</span>
+                </a>
+            </li>
+            <li class="nav-item mb-1">
+                <a class="nav-link text-secondary" 
+                   href="/Admin/Book"
+                   style="border-radius: 10px; font-weight: 500;">
+                    <i class="bi bi-pen me-2 text-primary"></i>
+                    <span>Quản lý tác giả</span>
+                </a>
+            </li>
+            <li class="nav-item mb-1">
+                <a class="nav-link text-secondary" 
+                   href="/Admin/Book"
+                   style="border-radius: 10px; font-weight: 500;">
+                    <i class="bi bi-building me-2 text-primary"></i>
+                    <span>Nhà xuất bản</span>
+                </a>
+            </li>
+
+            <!-- BÁO CÁO & PHÂN QUYỀN -->
+            <li class="nav-heading text-uppercase fw-bold text-muted px-3 mt-3 mb-1" style="font-size: 11px; letter-spacing: 0.6px;">BÁO CÁO & PHÂN QUYỀN</li>
+            <li class="nav-item mb-1">
+                <a class="nav-link text-secondary" 
+                   href="/Admin/Home"
+                   style="border-radius: 10px; font-weight: 500;">
+                    <i class="bi bi-bar-chart-line me-2 text-primary"></i>
+                    <span>Thống kê & Báo cáo</span>
+                </a>
+            </li>
+            <li class="nav-item mb-1">
+                <a class="nav-link @(currentCtrl == "User" ? "active text-white" : "text-secondary")" 
+                   href="/Admin/User"
+                   style="@(currentCtrl == "User" ? "background: #2563eb !important; border-radius: 10px; font-weight: 600;" : "border-radius: 10px; font-weight: 500;")">
+                    <i class="bi bi-people me-2 @(currentCtrl == "User" ? "text-white" : "text-primary")"></i>
+                    <span>Người dùng & Phân quyền</span>
+                </a>
+            </li>
+
+            <!-- TRÍ TUỆ NHÂN TẠO -->
+            <li class="nav-heading text-uppercase fw-bold text-muted px-3 mt-3 mb-1" style="font-size: 11px; letter-spacing: 0.6px;">TRÍ TUỆ NHÂN TẠO</li>
+            <li class="nav-item mb-1">
+                <a class="nav-link text-secondary" 
+                   href="javascript:void(0)" onclick="alert('Tính năng cấu hình Prompt & Tri thức RAG của Chatbot AI đang hoạt động tự động!')"
+                   style="border-radius: 10px; font-weight: 500;">
+                    <i class="bi bi-robot me-2 text-primary"></i>
+                    <span>Quản trị Chatbot AI</span>
+                </a>
+            </li>
+
+            <!-- CỔNG THÔNG TIN -->
+            <li class="nav-heading text-uppercase fw-bold text-muted px-3 mt-3 mb-1" style="font-size: 11px; letter-spacing: 0.6px;">CỔNG THÔNG TIN</li>
+            <li class="nav-item mb-1">
+                <a class="nav-link text-secondary" 
+                   href="/" target="_blank"
+                   style="border-radius: 10px; font-weight: 500;">
+                    <i class="bi bi-box-arrow-up-right me-2 text-primary"></i>
+                    <span>Xem trang độc giả</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Sidebar Bottom User Profile Card -->
+    <div class="px-3 py-3 border-top mt-auto bg-light">
+        <div class="d-flex align-items-center gap-2">
+            <div class="purple-avatar" style="width: 36px; height: 36px; font-size: 14px;">N</div>
+            <div class="overflow-hidden">
+                <div class="fw-bold text-dark text-truncate" style="font-size: 13px;">Nguyễn Quản Trị (Admin)</div>
+                <div class="text-muted small" style="font-size: 11px;">Admin</div>
+            </div>
+        </div>
+    </div>
 </aside>
