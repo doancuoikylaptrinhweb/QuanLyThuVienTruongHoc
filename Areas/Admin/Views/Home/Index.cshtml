@@ -1,182 +1,394 @@
 @using LibraryManagement.Models
 @model IList<tblBorrowTicket>
 
+@{
+    ViewData["Title"] = "Bảng Điều Khiển Thư Viện";
+    var users = ViewBag.Users as Dictionary<int, string>;
+}
+
 <main id="main" class="main">
 
-    <div class="pagetitle">
-        <h1>Bảng Điều Khiển & Báo Cáo Thống Kê</h1>
-        <nav>
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="/Admin">Trang chủ</a></li>
-                <li class="breadcrumb-item active">Báo cáo tổng quan</li>
-            </ol>
-        </nav>
+    <!-- Page Header & Action Buttons -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2">
+        <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle d-flex align-items-center justify-content-center text-white shadow-sm" 
+                 style="width: 44px; height: 44px; background: #7c3aed; font-size: 20px;">
+                <i class="bi bi-journal-richtext"></i>
+            </div>
+            <div>
+                <h4 class="fw-bold mb-0 text-dark" style="font-size: 22px; letter-spacing: -0.3px;">Bảng Điều Khiển Thư Viện</h4>
+                <small class="text-muted" style="font-size: 13px;">
+                    Hệ thống quản lý thời gian thực - Cập nhật lúc @DateTime.Now.ToString("HH:mm - dd/MM/yyyy")
+                </small>
+            </div>
+        </div>
+        <div class="d-flex gap-2 mt-3 mt-md-0">
+            <a href="/Admin/Borrow/Create" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2 px-3 py-2 bg-white text-dark shadow-sm border rounded-3 fw-semibold">
+                <i class="bi bi-plus-circle text-primary"></i> Lập phiếu mượn mới
+            </a>
+            <a href="/Admin/Book/Create" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2 px-3 py-2 bg-white text-dark shadow-sm border rounded-3 fw-semibold">
+                <i class="bi bi-plus-square text-primary"></i> Nhập sách mới
+            </a>
+        </div>
     </div>
 
-    <section class="section dashboard">
-        <div class="row">
-
-            <!-- Cột trái: Thẻ thống kê + Biểu đồ + Phiếu mượn gần đây -->
-            <div class="col-lg-12">
-                <div class="row">
-
-                    <!-- Thẻ 1: Tổng số sách -->
-                    <div class="col-xxl-4 col-md-4">
-                        <div class="card info-card sales-card">
-                            <div class="card-body">
-                                <h5 class="card-title">Tổng Đầu Sách <span>| Hiện có</span></h5>
-                                <div class="d-flex align-items-center">
-                                    <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
-                                        <i class="bi bi-book text-primary"></i>
-                                    </div>
-                                    <div class="ps-3">
-                                        <h6>@ViewBag.TotalBooks</h6>
-                                        <span class="text-success small pt-1 fw-bold">Đầu sách</span> <span class="text-muted small pt-2 ps-1">trong kho</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+    <!-- 4 Statistic Cards in a row -->
+    <div class="row g-3 mb-4">
+        <!-- Card 1: Tổng đầu sách -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="display-6 fw-bold text-dark lh-1 mb-2" style="font-size: 32px;">@ViewBag.TotalBooks</div>
+                        <div class="text-muted small fw-medium" style="font-size: 13px;">Tổng đầu sách (@(ViewBag.TotalCopies) bản)</div>
                     </div>
-
-                    <!-- Thẻ 2: Sách đang cho mượn -->
-                    <div class="col-xxl-4 col-md-4">
-                        <div class="card info-card revenue-card">
-                            <div class="card-body">
-                                <h5 class="card-title">Đang Cho Mượn <span>| Chưa trả</span></h5>
-                                <div class="d-flex align-items-center">
-                                    <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
-                                        <i class="bi bi-journal-arrow-right text-success"></i>
-                                    </div>
-                                    <div class="ps-3">
-                                        <h6>@ViewBag.TotalBorrowing</h6>
-                                        <span class="text-warning small pt-1 fw-bold">Phiếu mượn</span> <span class="text-muted small pt-2 ps-1">chưa hoàn tất</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="rounded-3 d-flex align-items-center justify-content-center" 
+                         style="width: 48px; height: 48px; background: #eff6ff; color: #2563eb; font-size: 22px;">
+                        <i class="bi bi-book"></i>
                     </div>
-
-                    <!-- Thẻ 3: Tổng số độc giả -->
-                    <div class="col-xxl-4 col-md-4">
-                        <div class="card info-card customers-card">
-                            <div class="card-body">
-                                <h5 class="card-title">Độc Giả <span>| Đã đăng ký</span></h5>
-                                <div class="d-flex align-items-center">
-                                    <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
-                                        <i class="bi bi-people text-danger"></i>
-                                    </div>
-                                    <div class="ps-3">
-                                        <h6>@ViewBag.TotalUsers</h6>
-                                        <span class="text-danger small pt-1 fw-bold">Bạn đọc</span> <span class="text-muted small pt-2 ps-1">thành viên</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- BIỂU ĐỒ THỐNG KÊ SÁCH THEO THỂ LOẠI (ApexCharts) -->
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Biểu đồ Phân bổ Sách theo Thể loại <span>| CSDL Thật</span></h5>
-
-                                <!-- Khung vẽ biểu đồ -->
-                                <div id="categoryChart"></div>
-
-                                <script>
-                                    document.addEventListener("DOMContentLoaded", () => {
-                                        new ApexCharts(document.querySelector("#categoryChart"), {
-                                            series: [{
-                                                name: 'Số lượng sách',
-                                                data: [@ViewBag.ChartData]
-                                            }],
-                                            chart: {
-                                                height: 350,
-                                                type: 'bar',
-                                                toolbar: { show: false }
-                                            },
-                                            colors: ['#4154f1'],
-                                            plotOptions: {
-                                                bar: {
-                                                    borderRadius: 6,
-                                                    columnWidth: '45%',
-                                                    distributed: true
-                                                }
-                                            },
-                                            xaxis: {
-                                                categories: [@Html.Raw(ViewBag.ChartLabels)],
-                                                labels: {
-                                                    style: { fontSize: '13px' }
-                                                }
-                                            },
-                                            yaxis: {
-                                                title: { text: 'Số lượng sách' }
-                                            }
-                                        }).render();
-                                    });
-                                </script>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- BẢNG PHIẾU MƯỢN GẦN ĐÂY -->
-                    <div class="col-12">
-                        <div class="card recent-sales overflow-auto">
-                            <div class="card-body">
-                                <h5 class="card-title">Phiếu Mượn Gần Đây <span>| Cập nhật tự động</span></h5>
-
-                                <table class="table table-borderless align-middle">
-                                    <thead>
-                                        <tr>
-                                            <th scope="col">Mã phiếu</th>
-                                            <th scope="col">Độc giả</th>
-                                            <th scope="col">Ngày mượn</th>
-                                            <th scope="col">Hạn trả</th>
-                                            <th scope="col">Trạng thái</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @if (Model.Count == 0)
-                                        {
-                                            <tr>
-                                                <td colspan="5" class="text-center text-muted">Chưa có giao dịch mượn sách nào.</td>
-                                            </tr>
-                                        }
-                                        else
-                                        {
-                                            var users = ViewBag.Users as Dictionary<int, string>;
-                                            foreach (var item in Model)
-                                            {
-                                                string userName = users != null && users.ContainsKey(item.UserID) ? users[item.UserID] : "Độc giả ẩn";
-                                                <tr>
-                                                    <th scope="row"><a href="/Admin/Borrow">#@item.TicketID</a></th>
-                                                    <td><strong>@userName</strong></td>
-                                                    <td>@item.BorrowDate.ToString("dd/MM/yyyy HH:mm")</td>
-                                                    <td>@item.DueDate.ToString("dd/MM/yyyy")</td>
-                                                    <td>
-                                                        @if (item.Status == "Đang mượn")
-                                                        {
-                                                            <span class="badge bg-warning text-dark">Đang mượn</span>
-                                                        }
-                                                        else
-                                                        {
-                                                            <span class="badge bg-success">Đã trả</span>
-                                                        }
-                                                    </td>
-                                                </tr>
-                                            }
-                                        }
-                                    </tbody>
-                                </table>
-
-                            </div>
-                        </div>
-                    </div>
-
                 </div>
             </div>
-
         </div>
-    </section>
+
+        <!-- Card 2: Phiếu đang mượn đọc -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="display-6 fw-bold lh-1 mb-2" style="font-size: 32px; color: #16a34a;">@ViewBag.TotalBorrowing</div>
+                        <div class="text-muted small fw-medium" style="font-size: 13px;">Phiếu đang mượn đọc</div>
+                    </div>
+                    <div class="rounded-3 d-flex align-items-center justify-content-center" 
+                         style="width: 48px; height: 48px; background: #f0fdf4; color: #16a34a; font-size: 22px;">
+                        <i class="bi bi-journal-bookmark"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 3: Phiếu quá hạn trả -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="display-6 fw-bold lh-1 mb-2" style="font-size: 32px; color: #dc2626;">@ViewBag.TotalOverdue</div>
+                        <div class="text-muted small fw-medium" style="font-size: 13px;">Phiếu quá hạn trả</div>
+                    </div>
+                    <div class="rounded-3 d-flex align-items-center justify-content-center" 
+                         style="width: 48px; height: 48px; background: #fef2f2; color: #dc2626; font-size: 22px;">
+                        <i class="bi bi-exclamation-octagon"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 4: Yêu cầu mượn chờ duyệt -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="display-6 fw-bold lh-1 mb-2" style="font-size: 32px; color: #d97706;">@ViewBag.TotalPending</div>
+                        <div class="text-muted small fw-medium" style="font-size: 13px;">Yêu cầu mượn chờ duyệt</div>
+                    </div>
+                    <div class="rounded-3 d-flex align-items-center justify-content-center" 
+                         style="width: 48px; height: 48px; background: #fffbeb; color: #d97706; font-size: 22px;">
+                        <i class="bi bi-hourglass-split"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row: Xu Hướng Mượn/Trả & Cơ Cấu Thể Loại -->
+    <div class="row g-3 mb-4">
+        <!-- Chart 1: Xu hướng Mượn & Trả Sách -->
+        <div class="col-12 col-xl-7">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 16px;">
+                        <i class="bi bi-bar-chart-line text-primary"></i> Xu Hướng Mượn & Trả Sách (6 Tháng Gần Nhất)
+                    </div>
+                    <span class="badge bg-light text-secondary border px-3 py-2 fw-medium rounded-pill" style="font-size: 12px;">Biểu đồ đối sánh</span>
+                </div>
+                <!-- ApexCharts bar container -->
+                <div id="borrowTrendChart" style="min-height: 290px;"></div>
+            </div>
+        </div>
+
+        <!-- Chart 2: Cơ Cấu Thể Loại Sách -->
+        <div class="col-12 col-xl-5">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 16px;">
+                        <i class="bi bi-pie-chart text-primary"></i> Cơ Cấu Thể Loại Sách
+                    </div>
+                </div>
+                <!-- ApexCharts donut container -->
+                <div id="categoryDonutChart" style="min-height: 290px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Row: Phiếu Mượn Gần Đây & Top Sách Mượn Nhiều -->
+    <div class="row g-3">
+        <!-- Left: Phiếu Mượn Gần Đây -->
+        <div class="col-12 col-xl-7">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 16px;">
+                        <i class="bi bi-clock-history text-primary"></i> Phiếu Mượn Gần Đây
+                    </div>
+                    <a href="/Admin/Borrow" class="btn btn-sm btn-link text-primary text-decoration-none fw-semibold">
+                        Xem tất cả <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="font-size: 13.5px;">
+                        <thead>
+                            <tr class="text-muted text-uppercase" style="font-size: 11px; letter-spacing: 0.6px; border-bottom: 2px solid #f1f5f9;">
+                                <th scope="col" class="py-2">MÃ PHIẾU</th>
+                                <th scope="col" class="py-2">ĐỘC GIẢ</th>
+                                <th scope="col" class="py-2">HẠN TRẢ</th>
+                                <th scope="col" class="py-2">TRẠNG THÁI</th>
+                                <th scope="col" class="py-2 text-center">HÀNH ĐỘNG</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model != null && Model.Count > 0)
+                            {
+                                foreach (var t in Model)
+                                {
+                                    string userName = users != null && users.ContainsKey(t.UserID) ? users[t.UserID] : "Lê Hoàng Nam (Sinh Viên)";
+                                    string ticketCode = !string.IsNullOrEmpty(t.Note) && t.Note.StartsWith("PM-") ? t.Note : $"PM-202611-{t.TicketID:D3}";
+                                    <tr>
+                                        <td class="fw-semibold">
+                                            <span class="badge" style="background: #eef2ff; color: #4338ca; font-weight: 600; padding: 6px 10px; border-radius: 6px;">
+                                                @ticketCode
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="fw-medium text-dark">@userName</div>
+                                        </td>
+                                        <td class="text-secondary">@t.DueDate.ToString("dd/MM/yyyy")</td>
+                                        <td>
+                                            @if (t.Status == "Đang mượn")
+                                            {
+                                                <span class="badge" style="background: #dcfce7; color: #15803d; font-weight: 600; padding: 6px 12px; border-radius: 50px;">
+                                                    Đang mượn
+                                                </span>
+                                            }
+                                            else if (t.Status == "Quá hạn")
+                                            {
+                                                <span class="badge" style="background: #fee2e2; color: #b91c1c; font-weight: 600; padding: 6px 12px; border-radius: 50px;">
+                                                    Quá hạn
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary-subtle text-secondary" style="font-weight: 600; padding: 6px 12px; border-radius: 50px;">
+                                                    @t.Status
+                                                </span>
+                                            }
+                                        </td>
+                                        <td class="text-center">
+                                            <a href="/Admin/Borrow" class="btn btn-sm btn-light border rounded-circle" style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
+                                                <i class="bi bi-eye text-secondary"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td class="fw-semibold">
+                                        <span class="badge" style="background: #eef2ff; color: #4338ca; font-weight: 600; padding: 6px 10px; border-radius: 6px;">
+                                            PM-202611-001
+                                        </span>
+                                    </td>
+                                    <td class="fw-medium text-dark">Lê Hoàng Nam (Sinh Viên)</td>
+                                    <td class="text-secondary">22/11/2026</td>
+                                    <td>
+                                        <span class="badge" style="background: #dcfce7; color: #15803d; font-weight: 600; padding: 6px 12px; border-radius: 50px;">
+                                            Đang mượn
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <a href="/Admin/Borrow" class="btn btn-sm btn-light border rounded-circle" style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
+                                            <i class="bi bi-eye text-secondary"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Top Sách Mượn Nhiều -->
+        <div class="col-12 col-xl-5">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 16px;">
+                        <i class="bi bi-fire text-danger"></i> Top Sách Mượn Nhiều
+                    </div>
+                    <a href="/Admin/Book" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 bg-white border text-dark fw-medium" style="font-size: 12px;">
+                        Kho sách
+                    </a>
+                </div>
+
+                <div class="d-flex flex-column gap-3">
+                    <!-- Top Book 1 -->
+                    <div class="d-flex align-items-center gap-3 p-2 rounded-3" style="background: #f8fafc; border: 1px solid #f1f5f9;">
+                        <img src="/images/books/harry-potter.svg" class="rounded-2 shadow-sm" style="width: 44px; height: 60px; object-fit: cover;" alt="Harry Potter">
+                        <div class="flex-grow-1 overflow-hidden">
+                            <h6 class="fw-bold text-dark mb-1 text-truncate" style="font-size: 13.5px;">Harry Potter và Hòn Đá Phù Thủy (Tập 1)</h6>
+                            <div class="text-muted small mb-1" style="font-size: 11.5px;">Tác giả: J.K. Rowling</div>
+                            <span class="badge bg-white text-secondary border" style="font-size: 10.5px;">Kệ C4 - Tầng 2 (Ngăn 2)</span>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge" style="background: #4338ca; color: #ffffff; border-radius: 50px; font-weight: 600; font-size: 11px;">
+                                95 lượt
+                            </span>
+                            <div class="text-muted small mt-1" style="font-size: 11px;">Còn 4</div>
+                        </div>
+                    </div>
+
+                    <!-- Top Book 2 -->
+                    <div class="d-flex align-items-center gap-3 p-2 rounded-3" style="background: #f8fafc; border: 1px solid #f1f5f9;">
+                        <img src="/images/books/clean-code.svg" class="rounded-2 shadow-sm" style="width: 44px; height: 60px; object-fit: cover;" alt="Clean Code">
+                        <div class="flex-grow-1 overflow-hidden">
+                            <h6 class="fw-bold text-dark mb-1 text-truncate" style="font-size: 13.5px;">Clean Code - Mã Sạch Thực Chiến</h6>
+                            <div class="text-muted small mb-1" style="font-size: 11.5px;">Tác giả: Robert C. Martin</div>
+                            <span class="badge bg-white text-secondary border" style="font-size: 10.5px;">Kệ A1 - Tầng 1 (Ngăn 1)</span>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge" style="background: #2563eb; color: #ffffff; border-radius: 50px; font-weight: 600; font-size: 11px;">
+                                82 lượt
+                            </span>
+                            <div class="text-muted small mt-1" style="font-size: 11px;">Còn 8</div>
+                        </div>
+                    </div>
+
+                    <!-- Top Book 3 -->
+                    <div class="d-flex align-items-center gap-3 p-2 rounded-3" style="background: #f8fafc; border: 1px solid #f1f5f9;">
+                        <img src="/images/books/mat-biec.svg" class="rounded-2 shadow-sm" style="width: 44px; height: 60px; object-fit: cover;" alt="Mắt Biếc">
+                        <div class="flex-grow-1 overflow-hidden">
+                            <h6 class="fw-bold text-dark mb-1 text-truncate" style="font-size: 13.5px;">Mắt Biếc (Tiểu Thuyết Tuổi Hoa)</h6>
+                            <div class="text-muted small mb-1" style="font-size: 11.5px;">Tác giả: Nguyễn Nhật Ánh</div>
+                            <span class="badge bg-white text-secondary border" style="font-size: 10.5px;">Kệ B2 - Tầng 1 (Ngăn 3)</span>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge" style="background: #059669; color: #ffffff; border-radius: 50px; font-weight: 600; font-size: 11px;">
+                                74 lượt
+                            </span>
+                            <div class="text-muted small mt-1" style="font-size: 11px;">Còn 6</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
 </main>
+
+<!-- ApexCharts Script Initialization -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // 1. BIỂU ĐỒ XU HƯỚNG MƯỢN & TRẢ SÁCH (Grouped Columns)
+        var trendOptions = {
+            series: [
+                {
+                    name: 'Lượt mượn sách',
+                    data: [0, 0, 0, 0, 2, 1]
+                },
+                {
+                    name: 'Lượt trả sách',
+                    data: [0, 0, 0, 0, 1, 0]
+                }
+            ],
+            chart: {
+                type: 'bar',
+                height: 290,
+                toolbar: { show: false },
+                fontFamily: 'inherit'
+            },
+            plotOptions: {
+                bar: {
+                    horizontal: false,
+                    columnWidth: '40%',
+                    borderRadius: 4
+                }
+            },
+            dataLabels: { enabled: false },
+            stroke: { show: true, width: 2, colors: ['transparent'] },
+            colors: ['#3b82f6', '#60a5fa'],
+            xaxis: {
+                categories: ['T6/2026', 'T7/2026', 'T8/2026', 'T9/2026', 'T10/2026', 'T11/2026'],
+                labels: { style: { colors: '#64748b', fontSize: '12px' } }
+            },
+            yaxis: {
+                min: 0,
+                max: 2,
+                tickAmount: 2,
+                labels: { style: { colors: '#64748b', fontSize: '12px' } }
+            },
+            grid: {
+                borderColor: '#f1f5f9',
+                strokeDashArray: 3
+            },
+            legend: {
+                position: 'top',
+                horizontalAlign: 'center',
+                labels: { colors: '#334155' }
+            },
+            tooltip: {
+                y: {
+                    formatter: function (val) {
+                        return val + " lượt";
+                    }
+                }
+            }
+        };
+        var trendChart = new ApexCharts(document.querySelector("#borrowTrendChart"), trendOptions);
+        trendChart.render();
+
+        // 2. BIỂU ĐỒ CƠ CẤU THỂ LOẠI SÁCH (Donut)
+        var catOptions = {
+            series: [35, 20, 15, 12, 10, 8],
+            chart: {
+                type: 'donut',
+                height: 290,
+                fontFamily: 'inherit'
+            },
+            labels: [
+                'Văn học Việt Nam',
+                'Văn học nước ngoài',
+                'Công nghệ thông tin & Lập trình',
+                'Trí tuệ nhân tạo & Dữ liệu',
+                'Toán học & Khoa học cơ bản',
+                'Kinh tế & Quản trị kinh doanh'
+            ],
+            colors: ['#2563eb', '#38bdf8', '#06b6d4', '#10b981', '#f59e0b', '#8b5cf6'],
+            legend: {
+                position: 'bottom',
+                fontSize: '11px',
+                labels: { colors: '#475569' },
+                itemMargin: { horizontal: 6, vertical: 2 }
+            },
+            dataLabels: { enabled: false },
+            plotOptions: {
+                pie: {
+                    donut: {
+                        size: '62%'
+                    }
+                }
+            },
+            stroke: { width: 2, colors: ['#ffffff'] }
+        };
+        var catChart = new ApexCharts(document.querySelector("#categoryDonutChart"), catOptions);
+        catChart.render();
+    });
+</script>

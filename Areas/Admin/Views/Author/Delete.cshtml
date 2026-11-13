@@ -1,0 +1,87 @@
+@using LibraryManagement.Models
+@model tblAuthor
+
+@{
+    ViewData["Title"] = "Xóa Tác Giả";
+    int bookCount = ViewBag.BookCount ?? 0;
+}
+
+<main id="main" class="main">
+
+    <div class="pagetitle mb-4">
+        <h4 class="fw-bold text-dark mb-0">Xóa Tác Giả</h4>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0" style="font-size: 13px;">
+                <li class="breadcrumb-item"><a href="/Admin/Home">Trang chủ</a></li>
+                <li class="breadcrumb-item"><a href="/Admin/Author">Quản lý tác giả</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Xác nhận xóa</li>
+            </ol>
+        </nav>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 bg-white p-4">
+                @if (bookCount > 0)
+                {
+                    <div class="alert alert-warning rounded-3 mb-4">
+                        <i class="bi bi-exclamation-triangle-fill me-2 fs-5 align-middle"></i>
+                        <strong>Cảnh báo khóa ngoại:</strong> Tác giả này hiện đang có <strong>@bookCount</strong> đầu sách trong kho thư viện. Bạn cần xóa hoặc gán lại tác giả cho các cuốn sách đó trước khi có thể xóa tác giả này.
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-danger rounded-3 mb-4">
+                        <i class="bi bi-exclamation-circle-fill me-2 fs-5 align-middle"></i>
+                        Bạn có chắc chắn muốn xóa vĩnh viễn tác giả này không? Thao tác này không thể hoàn tác.
+                    </div>
+                }
+
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered rounded-3 overflow-hidden">
+                        <tbody>
+                            <tr>
+                                <th class="bg-light text-secondary" style="width: 35%;">Mã tác giả</th>
+                                <td>#@Model.AuthorID</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light text-secondary">Tên tác giả</th>
+                                <td><strong class="text-dark">@Model.AuthorName</strong></td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light text-secondary">Tiểu sử</th>
+                                <td class="text-muted">@(string.IsNullOrEmpty(Model.Bio) ? "Chưa có" : Model.Bio)</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light text-secondary">Số sách liên kết</th>
+                                <td><span class="badge bg-primary">@bookCount đầu sách</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <form asp-area="Admin" asp-controller="Author" asp-action="Delete" method="post">
+                    <input type="hidden" asp-for="AuthorID" />
+                    <div class="d-flex gap-2">
+                        @if (bookCount == 0)
+                        {
+                            <button type="submit" class="btn btn-danger rounded-pill px-4 fw-semibold">
+                                <i class="bi bi-trash-fill me-1"></i> Xác Nhận Xóa
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-secondary rounded-pill px-4" disabled>
+                                Không thể xóa (Có sách liên kết)
+                            </button>
+                        }
+                        <a asp-area="Admin" asp-controller="Author" asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">
+                            Quay lại danh sách
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</main>

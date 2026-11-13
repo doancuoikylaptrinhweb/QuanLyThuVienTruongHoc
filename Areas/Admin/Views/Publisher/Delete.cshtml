@@ -1,0 +1,91 @@
+@using LibraryManagement.Models
+@model tblPublisher
+
+@{
+    ViewData["Title"] = "Xóa Nhà Xuất Bản";
+    int bookCount = ViewBag.BookCount ?? 0;
+}
+
+<main id="main" class="main">
+
+    <div class="pagetitle mb-4">
+        <h4 class="fw-bold text-dark mb-0">Xóa Nhà Xuất Bản</h4>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0" style="font-size: 13px;">
+                <li class="breadcrumb-item"><a href="/Admin/Home">Trang chủ</a></li>
+                <li class="breadcrumb-item"><a href="/Admin/Publisher">Nhà xuất bản</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Xác nhận xóa</li>
+            </ol>
+        </nav>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 bg-white p-4">
+                @if (bookCount > 0)
+                {
+                    <div class="alert alert-warning rounded-3 mb-4">
+                        <i class="bi bi-exclamation-triangle-fill me-2 fs-5 align-middle"></i>
+                        <strong>Cảnh báo khóa ngoại:</strong> Nhà xuất bản này đang liên kết với <strong>@bookCount</strong> đầu sách trong thư viện. Bạn cần gán lại hoặc xóa các cuốn sách đó trước khi xóa NXB này.
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-danger rounded-3 mb-4">
+                        <i class="bi bi-exclamation-circle-fill me-2 fs-5 align-middle"></i>
+                        Bạn có chắc chắn muốn xóa vĩnh viễn nhà xuất bản này không? Thao tác này không thể hoàn tác.
+                    </div>
+                }
+
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered rounded-3 overflow-hidden">
+                        <tbody>
+                            <tr>
+                                <th class="bg-light text-secondary" style="width: 35%;">Mã NXB</th>
+                                <td>#@Model.PublisherID</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light text-secondary">Tên nhà xuất bản</th>
+                                <td><strong class="text-dark">@Model.PublisherName</strong></td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light text-secondary">Địa chỉ</th>
+                                <td class="text-muted">@(string.IsNullOrEmpty(Model.Address) ? "Chưa có" : Model.Address)</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light text-secondary">Hotline</th>
+                                <td>@(string.IsNullOrEmpty(Model.Phone) ? "Chưa có" : Model.Phone)</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light text-secondary">Số sách liên kết</th>
+                                <td><span class="badge bg-primary">@bookCount đầu sách</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <form asp-area="Admin" asp-controller="Publisher" asp-action="Delete" method="post">
+                    <input type="hidden" asp-for="PublisherID" />
+                    <div class="d-flex gap-2">
+                        @if (bookCount == 0)
+                        {
+                            <button type="submit" class="btn btn-danger rounded-pill px-4 fw-semibold">
+                                <i class="bi bi-trash-fill me-1"></i> Xác Nhận Xóa
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-secondary rounded-pill px-4" disabled>
+                                Không thể xóa (Có sách liên kết)
+                            </button>
+                        }
+                        <a asp-area="Admin" asp-controller="Publisher" asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">
+                            Quay lại danh sách
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</main>

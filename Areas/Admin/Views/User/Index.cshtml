@@ -1,90 +1,287 @@
 @using LibraryManagement.Models
 @model IList<tblUser>
 
+@{
+    ViewData["Title"] = "Người Dùng & Phân Quyền";
+}
+
 <main id="main" class="main">
-    <div class="pagetitle">
-        <h2>Quản lý Độc giả & Phân quyền</h2>
+
+    <!-- Header & Action -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2">
+        <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle d-flex align-items-center justify-content-center text-white shadow-sm" 
+                 style="width: 44px; height: 44px; background: #2563eb; font-size: 20px;">
+                <i class="bi bi-shield-lock-fill"></i>
+            </div>
+            <div>
+                <h4 class="fw-bold mb-0 text-dark" style="font-size: 22px; letter-spacing: -0.3px;">Người Dùng &amp; Phân Quyền Hệ Thống</h4>
+                <small class="text-muted" style="font-size: 13px;">
+                    Thiết lập phân quyền Quản trị viên (Admin), Thủ thư (Librarian) và Độc giả (Reader)
+                </small>
+            </div>
+        </div>
+        <div class="mt-3 mt-md-0">
+            <button type="button" class="btn btn-primary rounded-pill px-4 py-2 fw-semibold shadow-sm d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#createUserModal">
+                <i class="bi bi-person-plus-fill"></i> Thêm Tài Khoản Mới
+            </button>
+        </div>
     </div>
 
-    <section class="section dashboard">
-        <div class="row">
-            <div class="col-12">
-                <div class="card recent-sales overflow-auto">
-                    <div class="card-body mt-4">
+    <!-- Alert Notifications -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-4 border-0 shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-4 border-0 shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
 
-                        @if (TempData["Error"] != null)
-                        {
-                            <div class="alert alert-danger">@TempData["Error"]</div>
-                        }
-
-                        <form method="get" class="d-flex mb-3">
-                            <input type="text" name="keyword" value="@ViewBag.Keyword"
-                                class="form-control me-2" placeholder="Tìm theo tên, tài khoản, email..." />
-                            <button class="btn btn-primary">Tìm</button>
-                        </form>
-
-                        <table class="table table-borderless datatable">
-                            <thead>
-                                <tr>
-                                    <th class="text-center">#</th>
-                                    <th>Tài khoản</th>
-                                    <th>Họ tên</th>
-                                    <th>Email</th>
-                                    <th class="text-center">Quyền</th>
-                                    <th class="text-center">Trạng thái</th>
-                                    <th class="text-center">Chức năng</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var item in Model)
-                                {
-                                    <tr>
-                                        <td class="text-center">@item.UserID</td>
-                                        <td>@item.UserName</td>
-                                        <td><strong>@item.FullName</strong></td>
-                                        <td>@item.Email</td>
-                                        <td class="text-center">
-                                            <form asp-area="Admin" asp-controller="User" asp-action="ChangeRole" method="post"
-                                                onsubmit="return confirm('Đổi quyền người dùng này?');">
-                                                <input type="hidden" name="id" value="@item.UserID" />
-                                                <select name="role" class="form-select form-select-sm" onchange="this.form.requestSubmit()">
-                                                    <option value="Reader" selected="@(item.Role == "Reader")">Độc giả</option>
-                                                    <option value="Librarian" selected="@(item.Role == "Librarian")">Thủ thư</option>
-                                                    <option value="Admin" selected="@(item.Role == "Admin")">Admin</option>
-                                                </select>
-                                            </form>
-                                        </td>
-                                        <td class="text-center">
-                                            @if (item.IsActive == true)
-                                            {
-                                                <span class="badge bg-success">Hoạt động</span>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-danger">Đã khóa</span>
-                                            }
-                                        </td>
-                                        <td class="text-center">
-                                            <form asp-area="Admin" asp-controller="User" asp-action="ToggleActive" method="post"
-                                                onsubmit="return confirm('Xác nhận khóa/mở tài khoản này?');">
-                                                <input type="hidden" name="id" value="@item.UserID" />
-                                                @if (item.IsActive == true)
-                                                {
-                                                    <button class="btn btn-danger btn-sm" title="Khóa"><i class="bi bi-lock"></i></button>
-                                                }
-                                                else
-                                                {
-                                                    <button class="btn btn-success btn-sm" title="Mở khóa"><i class="bi bi-unlock"></i></button>
-                                                }
-                                            </form>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
+    <!-- 4 Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="display-6 fw-bold text-dark lh-1 mb-2" style="font-size: 28px;">@ViewBag.TotalUsers</div>
+                        <div class="text-muted small">Tổng tài khoản</div>
+                    </div>
+                    <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; background: #eff6ff; color: #2563eb; font-size: 20px;">
+                        <i class="bi bi-people"></i>
                     </div>
                 </div>
             </div>
         </div>
-    </section>
+
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="display-6 fw-bold lh-1 mb-2 text-primary" style="font-size: 28px;">@ViewBag.TotalAdmins</div>
+                        <div class="text-muted small">Quản trị viên (Admin)</div>
+                    </div>
+                    <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; background: #f5f3ff; color: #7c3aed; font-size: 20px;">
+                        <i class="bi bi-shield-fill-check"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="display-6 fw-bold lh-1 mb-2" style="font-size: 28px; color: #0284c7;">@ViewBag.TotalLibrarians</div>
+                        <div class="text-muted small">Thủ thư thư viện</div>
+                    </div>
+                    <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; background: #e0f2fe; color: #0284c7; font-size: 20px;">
+                        <i class="bi bi-person-badge"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="display-6 fw-bold lh-1 mb-2 text-success" style="font-size: 28px;">@ViewBag.TotalReaders</div>
+                        <div class="text-muted small">Độc giả (Sinh viên)</div>
+                    </div>
+                    <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; background: #ecfdf5; color: #059669; font-size: 20px;">
+                        <i class="bi bi-mortarboard"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Table Card -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white p-4">
+        <!-- Search bar -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+            <form method="get" class="d-flex gap-2 flex-grow-1" style="max-width: 450px;">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" name="keyword" value="@ViewBag.Keyword" class="form-control border-start-0 ps-0" placeholder="Tìm theo tên đăng nhập, họ tên, email, quyền..." />
+                </div>
+                <button type="submit" class="btn btn-primary rounded-pill px-3">Tìm kiếm</button>
+                @if (!string.IsNullOrEmpty(ViewBag.Keyword))
+                {
+                    <a href="/Admin/User" class="btn btn-outline-secondary rounded-pill px-3">Xóa lọc</a>
+                }
+            </form>
+            <div class="text-muted small">
+                Tổng cộng: <strong>@Model.Count</strong> tài khoản
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size: 13.5px;">
+                <thead>
+                    <tr class="text-muted text-uppercase" style="font-size: 11px; letter-spacing: 0.6px; border-bottom: 2px solid #f1f5f9;">
+                        <th class="py-2 text-center" style="width: 60px;"># ID</th>
+                        <th class="py-2">TÀI KHOẢN</th>
+                        <th class="py-2">HỌ VÀ TÊN</th>
+                        <th class="py-2">EMAIL</th>
+                        <th class="py-2 text-center" style="width: 170px;">PHÂN QUYỀN</th>
+                        <th class="py-2 text-center" style="width: 130px;">TRẠNG THÁI</th>
+                        <th class="py-2 text-center" style="width: 160px;">CHỨC NĂNG</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td class="text-center fw-semibold text-secondary">#@item.UserID</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="purple-avatar" style="width: 32px; height: 32px; font-size: 13px;">
+                                        @(item.UserName?.Substring(0, 1).ToUpper() ?? "U")
+                                    </div>
+                                    <div>
+                                        <strong class="text-dark">@item.UserName</strong>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><strong>@(item.FullName ?? "Chưa cập nhật")</strong></td>
+                            <td class="text-secondary">@(item.Email ?? "Chưa có email")</td>
+                            
+                            <!-- Dropdown Phân quyền trực tiếp -->
+                            <td class="text-center">
+                                <form asp-area="Admin" asp-controller="User" asp-action="ChangeRole" method="post" class="d-inline-block">
+                                    <input type="hidden" name="id" value="@item.UserID" />
+                                    <select name="role" class="form-select form-select-sm fw-semibold rounded-pill" 
+                                            onchange="if(confirm('Bạn có chắc muốn đổi quyền của tài khoản này sang ' + this.value + '?')) { this.form.submit(); } else { location.reload(); }"
+                                            style="font-size: 12.5px; @(item.Role == "Admin" ? "background-color: #f5f3ff; color: #7c3aed; border-color: #ddd6fe;" : item.Role == "Librarian" ? "background-color: #e0f2fe; color: #0284c7; border-color: #bae6fd;" : "background-color: #ecfdf5; color: #059669; border-color: #a7f3d0;")">
+                                        <option value="Admin" selected="@(item.Role == "Admin")">👑 Quản trị viên (Admin)</option>
+                                        <option value="Librarian" selected="@(item.Role == "Librarian")">📚 Thủ thư (Librarian)</option>
+                                        <option value="Reader" selected="@(item.Role == "Reader" || string.IsNullOrEmpty(item.Role))">👤 Độc giả (Reader)</option>
+                                    </select>
+                                </form>
+                            </td>
+
+                            <!-- Trạng thái tài khoản -->
+                            <td class="text-center">
+                                @if (item.IsActive == true)
+                                {
+                                    <span class="badge" style="background: #dcfce7; color: #15803d; font-weight: 600; padding: 6px 12px; border-radius: 50px;">
+                                        Hoạt động
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge" style="background: #fee2e2; color: #b91c1c; font-weight: 600; padding: 6px 12px; border-radius: 50px;">
+                                        Đã khóa
+                                    </span>
+                                }
+                            </td>
+
+                            <!-- Hành động -->
+                            <td class="text-center">
+                                <div class="d-inline-flex gap-1">
+                                    <!-- Khóa / Mở khóa -->
+                                    <form asp-area="Admin" asp-controller="User" asp-action="ToggleActive" method="post" class="d-inline"
+                                          onsubmit="return confirm('Xác nhận thay đổi trạng thái khóa/mở tài khoản [@item.UserName]?');">
+                                        <input type="hidden" name="id" value="@item.UserID" />
+                                        @if (item.IsActive == true)
+                                        {
+                                            <button type="submit" class="btn btn-sm btn-light border text-danger rounded-circle" style="width: 32px; height: 32px; padding: 0;" title="Khóa tài khoản">
+                                                <i class="bi bi-lock-fill"></i>
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button type="submit" class="btn btn-sm btn-light border text-success rounded-circle" style="width: 32px; height: 32px; padding: 0;" title="Mở khóa tài khoản">
+                                                <i class="bi bi-unlock-fill"></i>
+                                            </button>
+                                        }
+                                    </form>
+
+                                    <!-- Đặt lại mật khẩu về 123456 -->
+                                    <form asp-area="Admin" asp-controller="User" asp-action="ResetPassword" method="post" class="d-inline"
+                                          onsubmit="return confirm('Đặt lại mật khẩu cho [@item.UserName] về mặc định là 123456?');">
+                                        <input type="hidden" name="id" value="@item.UserID" />
+                                        <button type="submit" class="btn btn-sm btn-light border text-warning rounded-circle" style="width: 32px; height: 32px; padding: 0;" title="Reset mật khẩu về 123456">
+                                            <i class="bi bi-key-fill"></i>
+                                        </button>
+                                    </form>
+
+                                    <!-- Xóa tài khoản -->
+                                    <form asp-area="Admin" asp-controller="User" asp-action="Delete" method="post" class="d-inline"
+                                          onsubmit="return confirm('Bạn có chắc chắn muốn xóa tài khoản [@item.UserName] này không?');">
+                                        <input type="hidden" name="id" value="@item.UserID" />
+                                        <button type="submit" class="btn btn-sm btn-light border text-secondary rounded-circle" style="width: 32px; height: 32px; padding: 0;" title="Xóa tài khoản">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
 </main>
+
+<!-- MODAL TẠO TÀI KHOẢN MỚI -->
+<div class="modal fade" id="createUserModal" tabindex="-1" aria-labelledby="createUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold" id="createUserModalLabel">
+                    <i class="bi bi-person-plus-fill me-2"></i> Tạo Tài Khoản Mới &amp; Phân Quyền
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-area="Admin" asp-controller="User" asp-action="Create" method="post">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Tên đăng nhập (Username) <span class="text-danger">*</span></label>
+                        <input type="text" name="UserName" class="form-control" required placeholder="Ví dụ: admin02, thuthu_mai, sinhvien_nam" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Họ và tên đầy đủ <span class="text-danger">*</span></label>
+                        <input type="text" name="FullName" class="form-control" required placeholder="Ví dụ: Nguyễn Văn An" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Địa chỉ Email</label>
+                        <input type="email" name="Email" class="form-control" placeholder="Ví dụ: admin@thuvien.edu.vn" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Mật khẩu khởi tạo <span class="text-danger">*</span></label>
+                        <input type="password" name="Password" class="form-control" required value="123456" />
+                        <small class="text-muted">Mặc định ban đầu: <code>123456</code> (sẽ tự động mã hóa MD5)</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Phân quyền chức vụ <span class="text-danger">*</span></label>
+                        <select name="Role" class="form-select fw-semibold" required>
+                            <option value="Admin">👑 Quản trị viên (Admin) - Toàn quyền cấu hình</option>
+                            <option value="Librarian">📚 Thủ thư (Librarian) - Quản lý sách &amp; phiếu mượn</option>
+                            <option value="Reader" selected>👤 Độc giả (Reader) - Tra cứu &amp; mượn sách</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 bg-light p-3">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold">
+                        <i class="bi bi-check-circle me-1"></i> Tạo tài khoản
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

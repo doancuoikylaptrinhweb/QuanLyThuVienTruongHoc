@@ -1,0 +1,64 @@
+@using LibraryManagement.Models
+@model tblPublisher
+
+@{
+    ViewData["Title"] = "Chỉnh Sửa Nhà Xuất Bản";
+}
+
+<main id="main" class="main">
+
+    <div class="pagetitle mb-4">
+        <h4 class="fw-bold text-dark mb-0">Chỉnh Sửa Nhà Xuất Bản</h4>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0" style="font-size: 13px;">
+                <li class="breadcrumb-item"><a href="/Admin/Home">Trang chủ</a></li>
+                <li class="breadcrumb-item"><a href="/Admin/Publisher">Nhà xuất bản</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Chỉnh sửa</li>
+            </ol>
+        </nav>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4 bg-white p-4">
+                <form asp-area="Admin" asp-controller="Publisher" asp-action="Edit" method="post">
+                    <input type="hidden" asp-for="PublisherID" />
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger rounded-3" role="alert"></div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Mã định danh</label>
+                        <input value="#@Model.PublisherID" class="form-control bg-light" disabled />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Tên nhà xuất bản <span class="text-danger">*</span></label>
+                        <input asp-for="PublisherName" class="form-control" required placeholder="Nhập tên nhà xuất bản..." />
+                        <span asp-validation-for="PublisherName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Địa chỉ trụ sở</label>
+                        <input asp-for="Address" class="form-control" placeholder="Nhập địa chỉ NXB..." />
+                        <span asp-validation-for="Address" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Hotline / Số điện thoại</label>
+                        <input asp-for="Phone" class="form-control" placeholder="Nhập số điện thoại..." />
+                        <span asp-validation-for="Phone" class="text-danger small"></span>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold">
+                            <i class="bi bi-check-circle me-1"></i> Cập Nhật Nhà Xuất Bản
+                        </button>
+                        <a asp-area="Admin" asp-controller="Publisher" asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">
+                            Hủy bỏ
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</main>

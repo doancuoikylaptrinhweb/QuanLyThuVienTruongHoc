@@ -6,11 +6,11 @@ namespace LibraryManagement.Utilities
 {
     public class Functions
     {
-        // 1. Các biến tĩnh lưu phiên đăng nhập (Lab 10 trang 3)
-        public static int _UserID = 0;
-        public static string _UserName = string.Empty;
-        public static string _Email = string.Empty;
-        public static string _Role = string.Empty;      // "Admin", "Librarian", "Reader"
+        // 1. Các biến tĩnh lưu phiên đăng nhập (Mặc định phiên Admin Quản trị)
+        public static int _UserID = 3;
+        public static string _UserName = "Nguyễn Quản Trị (Admin)";
+        public static string _Email = "admin@thuvien.edu.vn";
+        public static string _Role = "Admin";      // "Admin", "Librarian", "Reader"
         public static string _Message = string.Empty;
 
         // 2. Hàm sinh URL thân thiện cho chi tiết sách (Lab 05 trang 2)

@@ -1,0 +1,63 @@
+@using LibraryManagement.Models
+@model tblAuthor
+
+@{
+    ViewData["Title"] = "Chỉnh Sửa Tác Giả";
+}
+
+<main id="main" class="main">
+
+    <div class="pagetitle mb-4">
+        <h4 class="fw-bold text-dark mb-0">Chỉnh Sửa Thông Tin Tác Giả</h4>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0" style="font-size: 13px;">
+                <li class="breadcrumb-item"><a href="/Admin/Home">Trang chủ</a></li>
+                <li class="breadcrumb-item"><a href="/Admin/Author">Quản lý tác giả</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Chỉnh sửa</li>
+            </ol>
+        </nav>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4 bg-white p-4">
+                <form asp-area="Admin" asp-controller="Author" asp-action="Edit" method="post">
+                    <input type="hidden" asp-for="AuthorID" />
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger rounded-3" role="alert"></div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Mã định danh tác giả</label>
+                        <input value="#@Model.AuthorID" class="form-control bg-light" disabled />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Tên tác giả <span class="text-danger">*</span></label>
+                        <input asp-for="AuthorName" class="form-control" required placeholder="Nhập tên tác giả..." />
+                        <span asp-validation-for="AuthorName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Tiểu sử / Giới thiệu</label>
+                        <textarea asp-for="Bio" class="form-control" rows="4" placeholder="Nhập tiểu sử tác giả..."></textarea>
+                        <span asp-validation-for="Bio" class="text-danger small"></span>
+                    </div>
+
+                    <div class="form-check form-switch mb-4">
+                        <input asp-for="IsActive" class="form-check-input" type="checkbox" id="isActiveSwitch" />
+                        <label class="form-check-label fw-semibold" for="isActiveSwitch">Kích hoạt hiển thị</label>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold">
+                            <i class="bi bi-check-circle me-1"></i> Cập Nhật Tác Giả
+                        </button>
+                        <a asp-area="Admin" asp-controller="Author" asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">
+                            Hủy bỏ
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</main>
