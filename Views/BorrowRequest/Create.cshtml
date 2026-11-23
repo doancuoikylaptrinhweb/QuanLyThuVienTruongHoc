@@ -1,0 +1,46 @@
+@using LibraryManagement.Models
+@{
+    ViewBag.Title = "Yêu cầu mượn sách";
+    var books = ViewBag.AvailableBooks as List<tblBook> ?? new List<tblBook>();
+    var authors = ViewBag.Authors as Dictionary<int, string> ?? new Dictionary<int, string>();
+}
+<h2>@ViewBag.Title</h2>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+
+<form asp-action="Create" method="post">
+    <div class="form-group">
+        <label>Chọn sách muốn mượn (có sẵn):</label>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Mã sách</th>
+                    <th>Tiêu đề</th>
+                    <th>Tác giả</th>
+                    <th>Số lượng khả dụng</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var b in books)
+                {
+                    <tr>
+                        <td><input type="checkbox" name="selectedBookIds" value="@b.BookID" /></td>
+                        <td>@b.Code</td>
+                        <td>@b.Title</td>
+                        <td>@(authors.ContainsKey(b.AuthorID) ? authors[b.AuthorID] : "Chưa rõ")</td>
+                        <td>@b.AvailableQuantity</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <button type="submit" class="btn btn-primary">Gửi yêu cầu</button>
+</form>

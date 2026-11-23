@@ -1,0 +1,103 @@
+@using LibraryManagement.Models
+@model tblBook
+
+@{
+    ViewData["Title"] = $"Chỉnh sửa Sách [{Model.Code}]";
+}
+
+<main id="main" class="main">
+    <div class="pagetitle mb-3">
+        <h2>Chỉnh sửa Sách: @Model.Title</h2>
+        <p class="text-muted small mb-0">Cập nhật thông tin sách, điều chỉnh tổng kho có kiểm tra bảo toàn số lượng mượn.</p>
+    </div>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-4 border-0 shadow-sm" role="alert">
+            <i class="bi bi-exclamation-circle-fill me-2"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-4">
+            <form method="post" asp-area="Admin" asp-controller="Book" asp-action="Edit">
+                <input type="hidden" asp-for="BookID" />
+                <input type="hidden" asp-for="BookCode" />
+
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Mã sách</label>
+                        <input type="text" class="form-control bg-light" value="@Model.Code" readonly>
+                        <small class="text-muted">Mã định danh không thay đổi</small>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label fw-bold">Tên sách <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" asp-for="Title" required>
+                        <span asp-validation-for="Title" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Thể loại <span class="text-danger">*</span></label>
+                        <select class="form-select" asp-for="CategoryID" asp-items="ViewBag.CategoryList" required></select>
+                        <span asp-validation-for="CategoryID" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Tác giả <span class="text-danger">*</span></label>
+                        <select class="form-select" asp-for="AuthorID" asp-items="ViewBag.AuthorList" required></select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Nhà xuất bản <span class="text-danger">*</span></label>
+                        <select class="form-select" asp-for="PublisherID" asp-items="ViewBag.PublisherList" required></select>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Năm xuất bản</label>
+                        <input type="number" class="form-control" asp-for="PublishYear">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Tổng số lượng trong kho <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" asp-for="Quantity" min="0" required>
+                        <span asp-validation-for="Quantity" class="text-danger small"></span>
+                        <small class="text-muted">Đang cho mượn: <strong>@ViewBag.CurrentlyBorrowed</strong> cuốn</small>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Khả dụng hiện tại</label>
+                        <input type="text" class="form-control bg-light" value="@Model.AvailableQuantity" readonly>
+                        <small class="text-muted">Tự động tính = Tổng kho - Đang mượn</small>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Trạng thái lưu hành</label>
+                        <select class="form-select" asp-for="IsActive">
+                            <option value="true">Hiển thị lưu hành</option>
+                            <option value="false">Ẩn (Xóa mềm / Tạm ngừng)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Đường dẫn ảnh bìa</label>
+                    <input type="text" class="form-control" asp-for="Images" placeholder="/images/books/book-placeholder.svg">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Tóm tắt nội dung</label>
+                    <textarea class="form-control" asp-for="Summary" rows="3"></textarea>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary px-4 fw-semibold rounded-pill">
+                        <i class="bi bi-save me-1"></i> Lưu thay đổi
+                    </button>
+                    <a asp-area="Admin" asp-controller="Book" asp-action="Index" class="btn btn-light border px-4 rounded-pill">
+                        Quay lại
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>

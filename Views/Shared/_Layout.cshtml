@@ -113,9 +113,9 @@
                     else if (Functions._Role == "Reader")
                     {
                         <!-- TRẠNG THÁI ĐỘC GIẢ / BẠN ĐỌC ĐÃ ĐĂNG NHẬP (KHÔNG HIỆN ADMIN) -->
-                        <button type="button" class="btn-ticket-pill" data-bs-toggle="modal" data-bs-target="#myTicketsModal">
+                        <a href="/BorrowRequest/MyRequests" class="btn-ticket-pill text-decoration-none">
                             <i class="bi bi-card-checklist text-primary"></i> Phiếu mượn của tôi
-                        </button>
+                        </a>
 
                         <div class="dropdown">
                             <a class="d-flex align-items-center gap-2 text-decoration-none dropdown-toggle ps-1" href="#" data-bs-toggle="dropdown">
@@ -133,8 +133,13 @@
                                 </li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
+                                    <a class="dropdown-item d-flex align-items-center gap-2" href="/BorrowRequest/MyRequests">
+                                        <i class="bi bi-clock-history text-primary"></i> Lịch sử &amp; Yêu cầu mượn
+                                    </a>
+                                </li>
+                                <li>
                                     <a class="dropdown-item d-flex align-items-center gap-2" href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#myTicketsModal">
-                                        <i class="bi bi-journal-check text-success"></i> Xem phiếu mượn cá nhân
+                                        <i class="bi bi-journal-check text-success"></i> Tra cứu phiếu mượn cá nhân
                                     </a>
                                 </li>
                                 <li><hr class="dropdown-divider"></li>

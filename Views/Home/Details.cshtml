@@ -46,9 +46,18 @@
                 </div>
 
                 <div class="mt-3">
-                    <button type="button" class="btn btn-primary rounded-pill px-4 py-2 fw-semibold w-100 shadow-sm" onclick="alert('Đã gửi yêu cầu đăng ký mượn trực tuyến cuốn sách: @Model.Title! Xin vui lòng đến quầy thư viện đọc Mã Độc Giả để nhận sách.')">
-                        <i class="bi bi-journal-plus me-1"></i> Đăng Ký Mượn Sách
-                    </button>
+                    @if (Model.AvailableQuantity > 0)
+                    {
+                        <button type="button" id="btnOpenBorrowConfirm" class="btn btn-primary rounded-pill px-4 py-2 fw-semibold w-100 shadow-sm" onclick="openBorrowConfirmModal()">
+                            <i class="bi bi-journal-plus me-1"></i> Đăng Ký Mượn Sách
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-secondary rounded-pill px-4 py-2 fw-semibold w-100 shadow-sm" disabled>
+                            <i class="bi bi-slash-circle me-1"></i> Tạm Hết Sách Trên Kệ
+                        </button>
+                    }
                 </div>
             </div>
 
@@ -129,3 +138,151 @@
         </div>
     </div>
 </div>
+
+<!-- MODAL XÁC NHẬN ĐĂNG KÝ MƯỢN SÁCH TRỰC TIẾP -->
+<div class="modal fade" id="borrowConfirmModal" tabindex="-1" aria-labelledby="borrowConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header bg-primary text-white py-3">
+                <h5 class="modal-title fw-bold" id="borrowConfirmModalLabel">
+                    <i class="bi bi-journal-check me-2"></i> Xác Nhận Đăng Ký Mượn Sách
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-start">
+                <div id="borrowModalAlert" class="alert alert-danger d-none rounded-3 py-2 px-3 small mb-3"></div>
+
+                <div id="borrowConfirmContent">
+                    <p class="text-secondary mb-3 small">
+                        Bạn đang chuẩn bị đăng ký mượn trực tuyến cuốn sách sau từ kho thư viện:
+                    </p>
+
+                    <div class="p-3 bg-light rounded-4 border mb-3 d-flex gap-3 align-items-center">
+                        <img src="@coverImg" class="rounded-3 shadow-sm" style="width: 55px; height: 75px; object-fit: cover;" onerror="this.src='/admin/assets/img/card.jpg';" />
+                        <div>
+                            <div class="fw-bold text-dark fs-6">@Model.Title</div>
+                            <div class="text-primary small fw-semibold"><i class="bi bi-upc-scan me-1"></i>Mã sách: @Model.Code</div>
+                            <div class="text-muted small"><i class="bi bi-person me-1"></i>@(author?.AuthorName ?? "Chưa rõ")</div>
+                        </div>
+                    </div>
+
+                    <div class="card bg-light border-0 rounded-3 p-3 mb-3" style="font-size: 13px;">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Thời hạn mượn:</span>
+                            <strong class="text-dark">14 ngày</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Ngày hẹn trả dự kiến:</span>
+                            <strong class="text-primary">@DateTime.Now.AddDays(14).ToString("dd/MM/yyyy")</strong>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Số lượng rảnh trên kệ:</span>
+                            <strong class="text-success">@Model.AvailableQuantity cuốn</strong>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning py-2 px-3 small rounded-3 mb-0 d-flex gap-2">
+                        <i class="bi bi-info-circle-fill text-warning fs-5 flex-shrink-0"></i>
+                        <div style="font-size: 12.5px;">
+                            Sau khi bạn ấn <strong>Xác Nhận Mượn</strong>, phiếu yêu cầu sẽ được chuyển đến <strong>Thủ thư xét duyệt</strong>. Bạn có thể theo dõi trạng thái tại mục <strong>Phiếu mượn của tôi</strong>.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Giao diện hiển thị khi đăng ký mượn thành công -->
+                <div id="borrowSuccessContent" class="d-none text-center py-3">
+                    <div class="rounded-circle bg-success-subtle text-success d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px;">
+                        <i class="bi bi-check-circle-fill fs-1"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-2">Đăng Ký Mượn Thành Công!</h5>
+                    <div id="borrowSuccessMsg" class="text-secondary small mb-4"></div>
+                    <div class="d-flex justify-content-center gap-2">
+                        <a href="/BorrowRequest/MyRequests" class="btn btn-primary rounded-pill px-4 fw-semibold">
+                            <i class="bi bi-card-checklist me-1"></i> Xem Phiếu Mượn Của Tôi
+                        </a>
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">
+                            Đóng
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer border-0 bg-light p-3" id="borrowModalFooter">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Hủy bỏ</button>
+                <button type="button" id="btnConfirmBorrowSubmit" class="btn btn-primary rounded-pill px-4 fw-semibold shadow-sm" onclick="submitQuickBorrow(@Model.BookID)">
+                    <i class="bi bi-check-lg me-1"></i> Xác Nhận Mượn
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openBorrowConfirmModal() {
+        var modalEl = document.getElementById('borrowConfirmModal');
+        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        document.getElementById('borrowModalAlert').classList.add('d-none');
+        document.getElementById('borrowConfirmContent').classList.remove('d-none');
+        document.getElementById('borrowSuccessContent').classList.add('d-none');
+        document.getElementById('borrowModalFooter').classList.remove('d-none');
+        modal.show();
+    }
+
+    function submitQuickBorrow(bookId) {
+        var btn = document.getElementById('btnConfirmBorrowSubmit');
+        var alertBox = document.getElementById('borrowModalAlert');
+        alertBox.classList.add('d-none');
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang gửi yêu cầu...';
+
+        var formData = new FormData();
+        formData.append('bookId', bookId);
+
+        fetch('/BorrowRequest/QuickBorrow', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-lg me-1"></i> Xác Nhận Mượn';
+
+            if (data.requireLogin) {
+                var modalEl = document.getElementById('borrowConfirmModal');
+                var modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+
+                alert(data.message || 'Vui lòng đăng nhập tài khoản Độc giả để mượn sách!');
+                if (typeof openAuthModal === 'function') {
+                    openAuthModal('login');
+                }
+                return;
+            }
+
+            if (data.success) {
+                document.getElementById('borrowConfirmContent').classList.add('d-none');
+                document.getElementById('borrowModalFooter').classList.add('d-none');
+                document.getElementById('borrowSuccessMsg').innerHTML = data.message;
+                document.getElementById('borrowSuccessContent').classList.remove('d-none');
+
+                var mainBtn = document.getElementById('btnOpenBorrowConfirm');
+                if (mainBtn) {
+                    mainBtn.className = "btn btn-warning rounded-pill px-4 py-2 fw-semibold w-100 shadow-sm text-dark";
+                    mainBtn.disabled = true;
+                    mainBtn.innerHTML = '<i class="bi bi-clock-history me-1"></i> Đã gửi yêu cầu (Chờ duyệt: ' + data.ticketCode + ')';
+                }
+            } else {
+                alertBox.innerHTML = data.message || 'Không thể đăng ký mượn sách!';
+                alertBox.classList.remove('d-none');
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-lg me-1"></i> Xác Nhận Mượn';
+            alertBox.textContent = 'Có lỗi kết nối máy chủ, vui lòng thử lại sau!';
+            alertBox.classList.remove('d-none');
+        });
+    }
+</script>
+

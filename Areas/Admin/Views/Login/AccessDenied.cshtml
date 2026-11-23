@@ -1,0 +1,119 @@
+@{
+    Layout = null;
+    ViewData["Title"] = "Từ chối truy cập (403 Forbidden) - Thư Viện Số";
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>@ViewData["Title"]</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <!-- Vendor CSS Files -->
+    <link href="~/admin/assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="~/admin/assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet" />
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: linear-gradient(135deg, #f0f4ff 0%, #e8eeff 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1e293b;
+        }
+        .error-card {
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px -15px rgba(30, 58, 138, 0.12);
+            padding: 48px;
+            max-width: 540px;
+            width: 90%;
+            text-align: center;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        .icon-shield {
+            width: 88px;
+            height: 88px;
+            border-radius: 50%;
+            background: #fee2e2;
+            color: #dc2626;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 42px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 20px rgba(220, 38, 38, 0.15);
+        }
+        .btn-home {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: #fff;
+            padding: 12px 28px;
+            font-weight: 600;
+            border-radius: 9999px;
+            border: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 8px 16px rgba(37, 99, 235, 0.25);
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-home:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 20px rgba(37, 99, 235, 0.35);
+            color: #fff;
+        }
+        .btn-relogin {
+            background: #f1f5f9;
+            color: #334155;
+            padding: 12px 24px;
+            font-weight: 600;
+            border-radius: 9999px;
+            border: 1px solid #cbd5e1;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.2s;
+        }
+        .btn-relogin:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-card">
+        <div class="icon-shield">
+            <i class="bi bi-shield-lock-fill"></i>
+        </div>
+        <h2 class="fw-bold text-dark mb-2">403 - Quyền truy cập bị từ chối</h2>
+        <p class="text-secondary mb-4">
+            Bạn không có đủ quyền hạn để truy cập trang hoặc chức năng này.
+            <br />
+            Chức năng này được bảo vệ bởi chính sách phân quyền theo vai trò (<strong>Role-Based Access Control</strong>).
+        </p>
+
+        <div class="p-3 rounded-4 bg-light text-start mb-4" style="font-size: 13.5px;">
+            <div class="d-flex justify-content-between mb-1">
+                <span class="text-muted">Tài khoản đang đăng nhập:</span>
+                <strong class="text-primary">@(User.Identity?.Name ?? "Chưa đăng nhập")</strong>
+            </div>
+            <div class="d-flex justify-content-between">
+                <span class="text-muted">Vai trò hiện tại (Role):</span>
+                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                    @(User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "Guest")
+                </span>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 justify-content-center flex-wrap">
+            <a href="/" class="btn-home">
+                <i class="bi bi-house-door me-1"></i> Trang chủ Thư viện
+            </a>
+            <a href="/Admin/Login/Logout" class="btn-relogin">
+                <i class="bi bi-box-arrow-right me-1"></i> Đăng nhập tài khoản khác
+            </a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,465 @@
+@using LibraryManagement.Models
+@model List<tblBorrowTicket>
+@{
+    ViewData["Title"] = "Duyệt Yêu Cầu Mượn & Trả Sách Trực Tuyến";
+    var ticketDetails = ViewBag.TicketDetails as Dictionary<int, List<tblBorrowDetail>> ?? new Dictionary<int, List<tblBorrowDetail>>();
+    var books = ViewBag.Books as Dictionary<long, tblBook> ?? new Dictionary<long, tblBook>();
+    var users = ViewBag.Users as Dictionary<int, tblUser> ?? new Dictionary<int, tblUser>();
+
+    var pendingBorrows = Model?.Where(t => t.Status == "Pending").ToList() ?? new List<tblBorrowTicket>();
+    var pendingReturns = Model?.Where(t => t.Status == "Chờ duyệt trả").ToList() ?? new List<tblBorrowTicket>();
+}
+
+<main id="main" class="main">
+    <!-- Breadcrumb & Page Title -->
+    <div class="pagetitle mb-3">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div>
+                <h2 class="fw-bold mb-1">Duyệt Yêu Cầu Mượn &amp; Trả Sách Trực Tuyến</h2>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0" style="font-size: 13.5px;">
+                        <li class="breadcrumb-item"><a href="/Admin/Home" class="text-decoration-none text-muted">Quản trị</a></li>
+                        <li class="breadcrumb-item"><a href="/Admin/Borrow" class="text-decoration-none text-muted">Mượn / Trả</a></li>
+                        <li class="breadcrumb-item active text-primary fw-semibold" aria-current="page">Yêu cầu chờ duyệt</li>
+                    </ol>
+                </nav>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <a href="/Admin/Borrow" class="btn btn-outline-secondary rounded-pill px-3 py-1 shadow-sm" style="font-size: 13.5px;">
+                    <i class="bi bi-list-ul me-1"></i> Tất cả phiếu mượn
+                </a>
+                <a href="/Admin/Borrow/Create" class="btn btn-success rounded-pill px-3 py-1 shadow-sm fw-semibold" style="font-size: 13.5px;">
+                    <i class="bi bi-plus-circle me-1"></i> Lập phiếu tại quầy
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Notifications -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-4 border-0 shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-4 border-0 shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Stat Summary Card -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center text-warning" style="width: 48px; height: 48px; background: #fef3c7; font-size: 22px;">
+                        <i class="bi bi-journal-plus"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small fw-semibold">Yêu Cầu Mượn Chờ Duyệt</div>
+                        <h4 class="fw-bold mb-0 text-dark">@pendingBorrows.Count <small class="text-muted fs-6">phiếu</small></h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center text-info" style="width: 48px; height: 48px; background: #e0f2fe; font-size: 22px;">
+                        <i class="bi bi-box-arrow-in-left"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small fw-semibold">Yêu Cầu Trả Chờ Duyệt</div>
+                        <h4 class="fw-bold mb-0 text-dark">@pendingReturns.Count <small class="text-muted fs-6">phiếu</small></h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 d-flex justify-content-center">
+                <div class="d-flex align-items-center gap-2 small text-secondary">
+                    <i class="bi bi-shield-check text-success fs-5"></i>
+                    <div>
+                        <strong>Quy trình xử lý an toàn:</strong> Khi duyệt mượn, hệ thống trừ tồn kho nguyên tử. Khi duyệt trả, hệ thống hoàn kho đúng 1 lần duy nhất cho mỗi cuốn và tự động sinh <strong>Mã trả sách (PT...)</strong>. Mọi thao tác đều có thông báo xác nhận.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nav Tabs: Chờ duyệt mượn vs Chờ duyệt trả -->
+    <ul class="nav nav-pills mb-3 gap-2" id="pendingTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active rounded-pill px-4 fw-semibold" id="borrow-tab" data-bs-toggle="pill" data-bs-target="#borrow-pane" type="button" role="tab">
+                <i class="bi bi-journal-arrow-up me-1"></i> Yêu Cầu Mượn Sách 
+                <span class="badge bg-warning text-dark rounded-pill ms-1">@pendingBorrows.Count</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link rounded-pill px-4 fw-semibold" id="return-tab" data-bs-toggle="pill" data-bs-target="#return-pane" type="button" role="tab">
+                <i class="bi bi-journal-arrow-down me-1"></i> Yêu Cầu Trả Sách 
+                <span class="badge bg-info text-dark rounded-pill ms-1">@pendingReturns.Count</span>
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="pendingTabsContent">
+        <!-- TAB 1: YÊU CẦU MƯỢN CHỜ DUYỆT -->
+        <div class="tab-pane fade show active" id="borrow-pane" role="tabpanel">
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white mb-4">
+                <div class="card-body p-4">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" style="font-size: 13.5px;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="text-center" style="width: 110px;">Mã phiếu</th>
+                                    <th>Độc giả yêu cầu</th>
+                                    <th>Sách đăng ký mượn</th>
+                                    <th class="text-center" style="width: 120px;">Ngày yêu cầu</th>
+                                    <th class="text-center" style="width: 120px;">Hạn trả dự kiến</th>
+                                    <th class="text-center" style="width: 130px;">Trạng thái</th>
+                                    <th class="text-center" style="width: 180px;">Thao tác phê duyệt</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (pendingBorrows.Count == 0)
+                                {
+                                    <tr>
+                                        <td colspan="7" class="text-center py-5 text-muted">
+                                            <i class="bi bi-check2-circle text-success fs-1 d-block mb-2"></i>
+                                            Hiện không có yêu cầu mượn sách nào đang chờ xét duyệt!
+                                        </td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @foreach (var ticket in pendingBorrows)
+                                    {
+                                        var details = ticketDetails.ContainsKey(ticket.TicketID) ? ticketDetails[ticket.TicketID] : new List<tblBorrowDetail>();
+                                        tblUser borrower = users.ContainsKey(ticket.UserID) ? users[ticket.UserID] : null;
+
+                                        <tr>
+                                            <td class="text-center">
+                                                <span class="badge" style="background: #eef2ff; color: #4338ca; font-weight: 700; font-size: 13px; padding: 6px 10px; border-radius: 8px;">
+                                                    @ticket.Code
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style="width: 34px; height: 34px; background: #059669; font-size: 13px; flex-shrink: 0;">
+                                                        @(borrower?.FullName != null && borrower.FullName.Length > 0 ? borrower.FullName.Substring(0, 1).ToUpper() : "U")
+                                                    </div>
+                                                    <div>
+                                                        <div class="fw-bold text-dark">@(borrower?.FullName ?? borrower?.UserName ?? "Bạn đọc")</div>
+                                                        <div class="d-flex align-items-center gap-1 text-muted small" style="font-size: 11.5px;">
+                                                            <span class="badge bg-light text-secondary border">@(borrower?.Code ?? $"DG{ticket.UserID:D4}")</span>
+                                                            <span>@(borrower?.Email ?? "")</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex flex-column gap-2">
+                                                    @foreach (var d in details)
+                                                    {
+                                                        tblBook bk = books.ContainsKey(d.BookID) ? books[d.BookID] : null;
+                                                        bool hasStock = bk != null && bk.AvailableQuantity > 0;
+
+                                                        <div class="p-2 rounded-3 bg-light border d-flex align-items-center justify-content-between gap-2">
+                                                            <div class="d-flex align-items-center gap-2">
+                                                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-semibold">
+                                                                    @(bk?.Code ?? $"MS{d.BookID:D4}")
+                                                                </span>
+                                                                <strong class="text-dark small">@(bk?.Title ?? $"Sách #{d.BookID}")</strong>
+                                                            </div>
+                                                            <div>
+                                                                @if (hasStock)
+                                                                {
+                                                                    <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 11px;">
+                                                                        Còn @bk.AvailableQuantity cuốn
+                                                                    </span>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 11px;">
+                                                                        Hết sách trên kệ!
+                                                                    </span>
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            </td>
+                                            <td class="text-center text-muted">
+                                                @ticket.BorrowDate.ToString("dd/MM/yyyy HH:mm")
+                                            </td>
+                                            <td class="text-center text-primary fw-semibold">
+                                                @ticket.DueDate.ToString("dd/MM/yyyy")
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-3 py-1 fw-semibold">
+                                                    <i class="bi bi-clock-history me-1"></i> Chờ duyệt mượn
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="d-flex gap-1 justify-content-center">
+                                                    <button type="button" class="btn btn-sm btn-success rounded-pill px-3 fw-semibold shadow-sm d-flex align-items-center gap-1"
+                                                            data-bs-toggle="modal" data-bs-target="#approveModal-@ticket.TicketID">
+                                                        <i class="bi bi-check-lg"></i> Duyệt
+                                                    </button>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-semibold d-flex align-items-center gap-1"
+                                                            data-bs-toggle="modal" data-bs-target="#rejectModal-@ticket.TicketID">
+                                                        <i class="bi bi-x-lg"></i> Từ chối
+                                                    </button>
+                                                </div>
+
+                                                <!-- MODAL DUYỆT MƯỢN -->
+                                                <div class="modal fade" id="approveModal-@ticket.TicketID" tabindex="-1" aria-hidden="true">
+                                                    <div class="modal-dialog modal-dialog-centered">
+                                                        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden text-start">
+                                                            <div class="modal-header bg-success text-white py-3">
+                                                                <h5 class="modal-title fw-bold">
+                                                                    <i class="bi bi-check-circle-fill me-2"></i> Xác Nhận Phê Duyệt Phiếu Mượn
+                                                                </h5>
+                                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                            </div>
+                                                            <form method="post" asp-area="Admin" asp-controller="Borrow" asp-action="ApproveRequest">
+                                                                <input type="hidden" name="id" value="@ticket.TicketID" />
+                                                                <div class="modal-body p-4">
+                                                                    <div class="p-3 bg-light rounded-4 border mb-3">
+                                                                        <div class="d-flex justify-content-between mb-2">
+                                                                            <span class="text-muted">Mã phiếu:</span>
+                                                                            <strong class="text-primary">@ticket.Code</strong>
+                                                                        </div>
+                                                                        <div class="d-flex justify-content-between mb-2">
+                                                                            <span class="text-muted">Độc giả mượn:</span>
+                                                                            <strong class="text-dark">@(borrower?.FullName ?? borrower?.UserName) (@(borrower?.Code))</strong>
+                                                                        </div>
+                                                                        <div class="d-flex justify-content-between">
+                                                                            <span class="text-muted">Số lượng sách:</span>
+                                                                            <strong class="text-success">@details.Count cuốn</strong>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="alert alert-info py-2 px-3 small rounded-3 mb-0 d-flex gap-2">
+                                                                        <i class="bi bi-info-circle-fill text-info fs-5 flex-shrink-0"></i>
+                                                                        <div>
+                                                                            Khi bạn xác nhận phê duyệt:
+                                                                            <ul class="mb-0 ps-3 mt-1">
+                                                                                <li>Trạng thái phiếu sẽ chuyển sang <strong>Đang mượn</strong>.</li>
+                                                                                <li>Hạn trả sách được ấn định <strong>14 ngày</strong> kể từ hôm nay.</li>
+                                                                                <li>Hệ thống tự động trừ tồn kho khả dụng cho từng cuốn sách.</li>
+                                                                            </ul>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="modal-footer border-0 bg-light p-3">
+                                                                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Hủy bỏ</button>
+                                                                    <button type="submit" class="btn btn-success rounded-pill px-4 fw-semibold shadow-sm">
+                                                                        <i class="bi bi-check2-circle me-1"></i> Xác Nhận Phê Duyệt
+                                                                    </button>
+                                                                </div>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- MODAL TỪ CHỐI MƯỢN -->
+                                                <div class="modal fade" id="rejectModal-@ticket.TicketID" tabindex="-1" aria-hidden="true">
+                                                    <div class="modal-dialog modal-dialog-centered">
+                                                        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden text-start">
+                                                            <div class="modal-header bg-danger text-white py-3">
+                                                                <h5 class="modal-title fw-bold">
+                                                                    <i class="bi bi-exclamation-triangle-fill me-2"></i> Xác Nhận Từ Chối Yêu Cầu
+                                                                </h5>
+                                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                            </div>
+                                                            <form method="post" asp-area="Admin" asp-controller="Borrow" asp-action="RejectRequest">
+                                                                <input type="hidden" name="id" value="@ticket.TicketID" />
+                                                                <div class="modal-body p-4">
+                                                                    <p class="text-secondary small mb-3">
+                                                                        Bạn có chắc chắn muốn <strong>từ chối</strong> yêu cầu mượn sách mã <strong>@ticket.Code</strong> của độc giả <strong>@(borrower?.FullName ?? borrower?.UserName)</strong>?
+                                                                    </p>
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label fw-semibold small text-dark">Lý do từ chối (tùy chọn hoặc chọn nhanh):</label>
+                                                                        <input type="text" name="rejectReason" class="form-control mb-2" placeholder="Nhập lý do từ chối..." list="rejectReasonsList" />
+                                                                        <datalist id="rejectReasonsList">
+                                                                            <option value="Sách hiện đang được bảo quản / kiểm kê"></option>
+                                                                            <option value="Độc giả chưa hoàn tất thủ tục thẻ thư viện"></option>
+                                                                            <option value="Độc giả có lịch sử nợ phạt sách quá hạn"></option>
+                                                                            <option value="Số lượng bản sách khả dụng tạm thời chưa sẵn sàng"></option>
+                                                                        </datalist>
+                                                                        <small class="text-muted" style="font-size: 11.5px;">Lý do sẽ được lưu vào phiếu và độc giả có thể xem giải thích trong mục cá nhân.</small>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="modal-footer border-0 bg-light p-3">
+                                                                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
+                                                                    <button type="submit" class="btn btn-danger rounded-pill px-4 fw-semibold shadow-sm">
+                                                                        <i class="bi bi-x-circle me-1"></i> Xác Nhận Từ Chối
+                                                                    </button>
+                                                                </div>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: YÊU CẦU TRẢ SÁCH CHỜ XÁC NHẬN (MỚI) -->
+        <div class="tab-pane fade" id="return-pane" role="tabpanel">
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white mb-4">
+                <div class="card-body p-4">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" style="font-size: 13.5px;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="text-center" style="width: 110px;">Mã phiếu</th>
+                                    <th>Độc giả trả sách</th>
+                                    <th>Sách hoàn trả</th>
+                                    <th class="text-center" style="width: 120px;">Hạn trả</th>
+                                    <th class="text-center" style="width: 130px;">Trạng thái</th>
+                                    <th>Ghi chú của độc giả</th>
+                                    <th class="text-center" style="width: 180px;">Xác nhận tiếp nhận</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (pendingReturns.Count == 0)
+                                {
+                                    <tr>
+                                        <td colspan="7" class="text-center py-5 text-muted">
+                                            <i class="bi bi-box-seam text-primary fs-1 d-block mb-2"></i>
+                                            Hiện không có yêu cầu trả sách nào đang chờ xác nhận tại quầy!
+                                        </td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @foreach (var ticket in pendingReturns)
+                                    {
+                                        var details = ticketDetails.ContainsKey(ticket.TicketID) ? ticketDetails[ticket.TicketID] : new List<tblBorrowDetail>();
+                                        tblUser borrower = users.ContainsKey(ticket.UserID) ? users[ticket.UserID] : null;
+
+                                        <tr>
+                                            <td class="text-center">
+                                                <span class="badge" style="background: #eef2ff; color: #4338ca; font-weight: 700; font-size: 13px; padding: 6px 10px; border-radius: 8px;">
+                                                    @ticket.Code
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style="width: 34px; height: 34px; background: #0284c7; font-size: 13px; flex-shrink: 0;">
+                                                        @(borrower?.FullName != null && borrower.FullName.Length > 0 ? borrower.FullName.Substring(0, 1).ToUpper() : "U")
+                                                    </div>
+                                                    <div>
+                                                        <div class="fw-bold text-dark">@(borrower?.FullName ?? borrower?.UserName ?? "Bạn đọc")</div>
+                                                        <div class="d-flex align-items-center gap-1 text-muted small" style="font-size: 11.5px;">
+                                                            <span class="badge bg-light text-secondary border">@(borrower?.Code ?? $"DG{ticket.UserID:D4}")</span>
+                                                            <span>@(borrower?.Email ?? "")</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex flex-column gap-1">
+                                                    @foreach (var d in details.Where(x => !x.IsReturned))
+                                                    {
+                                                        tblBook bk = books.ContainsKey(d.BookID) ? books[d.BookID] : null;
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <span class="badge bg-light text-primary border border-primary-subtle small fw-semibold">
+                                                                @(bk?.Code ?? $"MS{d.BookID:D4}")
+                                                            </span>
+                                                            <strong class="text-dark small">@(bk?.Title ?? $"Sách #{d.BookID}")</strong>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            </td>
+                                            <td class="text-center text-muted">
+                                                @ticket.DueDate.ToString("dd/MM/yyyy")
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-3 py-1 fw-semibold">
+                                                    <i class="bi bi-hourglass-split me-1"></i> Chờ duyệt trả
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <small class="text-secondary">@(string.IsNullOrWhiteSpace(ticket.Note) ? "Độc giả gửi yêu cầu trả sách" : ticket.Note)</small>
+                                            </td>
+                                            <td class="text-center">
+                                                <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 fw-semibold shadow-sm d-flex align-items-center gap-1 mx-auto"
+                                                        data-bs-toggle="modal" data-bs-target="#approveReturnModal-@ticket.TicketID">
+                                                    <i class="bi bi-box-arrow-in-down-left"></i> Xác nhận trả
+                                                </button>
+
+                                                <!-- MODAL XÁC NHẬN NHẬN TRẢ SÁCH (ADMIN) -->
+                                                <div class="modal fade" id="approveReturnModal-@ticket.TicketID" tabindex="-1" aria-hidden="true">
+                                                    <div class="modal-dialog modal-dialog-centered">
+                                                        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden text-start">
+                                                            <div class="modal-header bg-primary text-white py-3">
+                                                                <h5 class="modal-title fw-bold">
+                                                                    <i class="bi bi-box-arrow-in-down-left me-2"></i> Xác Nhận Nhận Trả Sách &amp; Hoàn Kho
+                                                                </h5>
+                                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                            </div>
+                                                            <form method="post" asp-area="Admin" asp-controller="Borrow" asp-action="ApproveReturn">
+                                                                <input type="hidden" name="id" value="@ticket.TicketID" />
+                                                                <div class="modal-body p-4">
+                                                                    <div class="p-3 bg-light rounded-4 border mb-3">
+                                                                        <div class="d-flex justify-content-between mb-2">
+                                                                            <span class="text-muted">Mã phiếu mượn:</span>
+                                                                            <strong class="text-primary">@ticket.Code</strong>
+                                                                        </div>
+                                                                        <div class="d-flex justify-content-between mb-2">
+                                                                            <span class="text-muted">Độc giả trả:</span>
+                                                                            <strong class="text-dark">@(borrower?.FullName ?? borrower?.UserName) (@(borrower?.Code))</strong>
+                                                                        </div>
+                                                                        <div class="d-flex justify-content-between">
+                                                                            <span class="text-muted">Số sách hoàn kho:</span>
+                                                                            <strong class="text-success">@details.Count(x => !x.IsReturned) cuốn</strong>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label fw-semibold small text-dark">Ghi chú tình trạng sách lúc nhận lại:</label>
+                                                                        <input type="text" name="returnNote" class="form-control" placeholder="Ví dụ: Sách đầy đủ, không rách trang, hoàn kho an toàn..." />
+                                                                    </div>
+
+                                                                    <div class="alert alert-info py-2 px-3 small rounded-3 mb-0 d-flex gap-2">
+                                                                        <i class="bi bi-shield-check text-info fs-5 flex-shrink-0"></i>
+                                                                        <div style="font-size: 12.5px;">
+                                                                            Thao tác này sẽ thực hiện <strong>cộng lại số lượng khả dụng vào kho sách</strong> bằng giao dịch nguyên tử (Atomic transaction), cập nhật trạng thái phiếu thành <strong>Đã trả</strong> và sinh <strong>Mã trả sách (PT...)</strong>.
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="modal-footer border-0 bg-light p-3">
+                                                                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Hủy bỏ</button>
+                                                                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold shadow-sm">
+                                                                        <i class="bi bi-check-lg me-1"></i> Xác Nhận Hoàn Kho Sách
+                                                                    </button>
+                                                                </div>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>

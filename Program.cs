@@ -1,4 +1,6 @@
 using LibraryManagement.Models;
+using LibraryManagement.Utilities;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using System.IO;
@@ -7,10 +9,32 @@ var builder = WebApplication.CreateBuilder(args);
 var connection = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<DataContext>(options => options.UseSqlServer(connection));
 
+// Cung cấp HttpContextAccessor để truy cập Cookie Claims an toàn
+builder.Services.AddHttpContextAccessor();
+
+// Cấu hình Cookie Authentication & Phân quyền
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.Cookie.Name = "LibraryManagement.AuthCookie";
+        options.LoginPath = "/Admin/Login";
+        options.LogoutPath = "/Admin/Home/Logout";
+        options.AccessDeniedPath = "/Admin/Login/AccessDenied";
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.SlidingExpiration = true;
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+    });
+
+builder.Services.AddAuthorization();
+
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
+
+// Cấu hình HttpContextAccessor cho helper Functions
+Functions.Configure(app.Services.GetRequiredService<IHttpContextAccessor>());
 
 // Tự động kiểm tra & bổ sung các cột mã định danh nếu chưa có trong CSDL
 try
@@ -30,6 +54,18 @@ try
 
             IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('tblBorrowTicket') AND name = 'ReturnCode')
                 ALTER TABLE [dbo].[tblBorrowTicket] ADD [ReturnCode] NVARCHAR(30) NULL;
+
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('tblBorrowDetail') AND name = 'IsReturned')
+                ALTER TABLE [dbo].[tblBorrowDetail] ADD [IsReturned] BIT NOT NULL DEFAULT 0;
+
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('tblBorrowDetail') AND name = 'ReturnDate')
+                ALTER TABLE [dbo].[tblBorrowDetail] ADD [ReturnDate] DATETIME NULL;
+
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('tblBorrowDetail') AND name = 'Note')
+                ALTER TABLE [dbo].[tblBorrowDetail] ADD [Note] NVARCHAR(255) NULL;
+
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('tblPublisher') AND name = 'IsActive')
+                ALTER TABLE [dbo].[tblPublisher] ADD [IsActive] BIT NOT NULL DEFAULT 1;
         ");
     }
 }
@@ -38,11 +74,24 @@ catch
     // Bỏ qua nếu CSDL chưa sẵn sàng trong lúc build hoặc thiết lập
 }
 
+// Tự động nạp dữ liệu mẫu CHỈ KHI ở môi trường Development/Demo và CSDL hoàn toàn trống
+if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("EnableDemoDataSeeder"))
+{
+    try
+    {
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<DataContext>();
+            DevelopmentDataSeeder.SeedIfEmpty(db);
+        }
+    }
+    catch { }
+}
+
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
@@ -59,6 +108,8 @@ app.UseStaticFiles(new StaticFileOptions()
 
 app.UseRouting();
 
+// Cookie Authentication phải đứng TRƯỚC UseAuthorization
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();
@@ -71,6 +122,5 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
-
 
 app.Run();

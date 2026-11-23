@@ -11,5 +11,6 @@ namespace LibraryManagement.Models
         public string? PublisherName { get; set; }
         public string? Address { get; set; }
         public string? Phone { get; set; }
+        public bool? IsActive { get; set; } = true; // Cờ xóa mềm (Soft Delete)
     }
 }

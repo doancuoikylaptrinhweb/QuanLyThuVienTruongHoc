@@ -68,23 +68,23 @@
     </div>
 </div>
 
-<!-- 2. STATS COUNTER ROW (4 Thẻ trắng chỉ số nổi bật) -->
+<!-- 2. STATS COUNTER ROW (4 Thẻ trắng chỉ số nổi bật lấy từ Database) -->
 <div class="row g-3 mb-5">
     <div class="col-6 col-md-3">
         <div class="stat-card-modern">
-            <div class="stat-card-number">12+</div>
+            <div class="stat-card-number">@(ViewBag.TotalBooks ?? 0)+</div>
             <div class="stat-card-label">Đầu sách trong thư viện</div>
         </div>
     </div>
     <div class="col-6 col-md-3">
         <div class="stat-card-modern">
-            <div class="stat-card-number">127+</div>
+            <div class="stat-card-number">@(ViewBag.TotalCopies ?? 0)+</div>
             <div class="stat-card-label">Bản sách sẵn sàng phục vụ</div>
         </div>
     </div>
     <div class="col-6 col-md-3">
         <div class="stat-card-modern">
-            <div class="stat-card-number">3+</div>
+            <div class="stat-card-number">@(ViewBag.TotalReaders ?? 0)+</div>
             <div class="stat-card-label">Độc giả đăng ký hoạt động</div>
         </div>
     </div>
@@ -96,7 +96,7 @@
     </div>
 </div>
 
-<!-- 3. DANH MỤC THỂ LOẠI SÁCH (Section Header & Cards) -->
+<!-- 3. DANH MỤC THỂ LOẠI SÁCH (100% TRUY VẤN TỪ DATABASE) -->
 <div class="mb-5">
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
         <div class="d-flex align-items-center gap-3">
@@ -114,74 +114,40 @@
         </a>
     </div>
 
-    <!-- Category Cards Grid -->
+    <!-- Category Cards Grid động từ CSDL -->
     <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
-        <div class="col">
-            <a href="/?categoryId=2#kho-sach" class="category-card-modern">
-                <div class="cat-icon-badge" style="background: #eff6ff; color: #2563eb;">
-                    <i class="bi bi-laptop"></i>
+        @if (ViewBag.Categories != null && ((IEnumerable<tblCategory>)ViewBag.Categories).Any())
+        {
+            string[] iconBgs = { "background:#eff6ff;color:#2563eb;", "background:#f5f3ff;color:#7c3aed;", "background:#ecfdf5;color:#059669;", "background:#fffbeb;color:#d97706;", "background:#fdf2f8;color:#db2777;", "background:#eef2ff;color:#4f46e5;" };
+            string[] icons = { "bi-laptop", "bi-cpu", "bi-graph-up-arrow", "bi-mortarboard", "bi-feather", "bi-heart-pulse" };
+            int idx = 0;
+
+            foreach (var cat in (IEnumerable<tblCategory>)ViewBag.Categories)
+            {
+                string style = iconBgs[idx % iconBgs.Length];
+                string iconClass = icons[idx % icons.Length];
+                idx++;
+
+                <div class="col">
+                    <a href="/?categoryId=@cat.CategoryID#kho-sach" class="category-card-modern">
+                        <div class="cat-icon-badge" style="@style">
+                            <i class="bi @iconClass"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold text-dark mb-1">@cat.CategoryName</h6>
+                            <small class="text-muted">@(string.IsNullOrWhiteSpace(cat.Description) ? "Khám phá tài liệu chuyên khảo" : cat.Description)</small>
+                        </div>
+                    </a>
                 </div>
-                <div>
-                    <h6 class="fw-bold text-dark mb-1">Công nghệ thông tin &amp; Lập trình</h6>
-                    <small class="text-muted">C#, Java, Python, Web, Thuật toán</small>
-                </div>
-            </a>
-        </div>
-        <div class="col">
-            <a href="/?categoryId=6#kho-sach" class="category-card-modern">
-                <div class="cat-icon-badge" style="background: #f5f3ff; color: #7c3aed;">
-                    <i class="bi bi-cpu"></i>
-                </div>
-                <div>
-                    <h6 class="fw-bold text-dark mb-1">Trí tuệ nhân tạo &amp; Dữ liệu</h6>
-                    <small class="text-muted">Machine Learning, Big Data, LLM</small>
-                </div>
-            </a>
-        </div>
-        <div class="col">
-            <a href="/?categoryId=3#kho-sach" class="category-card-modern">
-                <div class="cat-icon-badge" style="background: #ecfdf5; color: #059669;">
-                    <i class="bi bi-graph-up-arrow"></i>
-                </div>
-                <div>
-                    <h6 class="fw-bold text-dark mb-1">Kinh tế &amp; Quản trị kinh doanh</h6>
-                    <small class="text-muted">Khởi nghiệp, Tài chính, Marketing</small>
-                </div>
-            </a>
-        </div>
-        <div class="col">
-            <a href="/?categoryId=5#kho-sach" class="category-card-modern">
-                <div class="cat-icon-badge" style="background: #fffbeb; color: #d97706;">
-                    <i class="bi bi-mortarboard"></i>
-                </div>
-                <div>
-                    <h6 class="fw-bold text-dark mb-1">Giáo trình &amp; Học phần đại học</h6>
-                    <small class="text-muted">Tài liệu tham khảo chuyên ngành</small>
-                </div>
-            </a>
-        </div>
-        <div class="col">
-            <a href="/?categoryId=1#kho-sach" class="category-card-modern">
-                <div class="cat-icon-badge" style="background: #fdf2f8; color: #db2777;">
-                    <i class="bi bi-feather"></i>
-                </div>
-                <div>
-                    <h6 class="fw-bold text-dark mb-1">Văn học Việt Nam &amp; Nước ngoài</h6>
-                    <small class="text-muted">Tiểu thuyết, truyện ngắn, tác phẩm kinh điển</small>
-                </div>
-            </a>
-        </div>
-        <div class="col">
-            <a href="/?categoryId=4#kho-sach" class="category-card-modern">
-                <div class="cat-icon-badge" style="background: #eef2ff; color: #4f46e5;">
-                    <i class="bi bi-heart-pulse"></i>
-                </div>
-                <div>
-                    <h6 class="fw-bold text-dark mb-1">Kỹ năng sống &amp; Phát triển bản thân</h6>
-                    <small class="text-muted">Tâm lý học, tư duy lãnh đạo, giao tiếp</small>
-                </div>
-            </a>
-        </div>
+            }
+        }
+        else
+        {
+            <div class="col-12 text-center py-4 text-muted">
+                <i class="bi bi-inbox fs-2 d-block mb-1 opacity-50"></i>
+                Danh mục sách đang được cập nhật.
+            </div>
+        }
     </div>
 </div>
 

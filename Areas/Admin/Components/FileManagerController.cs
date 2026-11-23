@@ -1,11 +1,13 @@
 using elFinder.NetCore;
 using elFinder.NetCore.Drivers.FileSystem;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LibraryManagement.Areas.Admin.Controllers
 {
     [Area("Admin")]
+    [Authorize(Roles = "Admin,Librarian")]
     public class FileManagerController : Controller
     {
         [Route("/Admin/file-manager")]
