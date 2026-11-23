@@ -6,7 +6,7 @@ using LibraryManagement.Models;
 namespace LibraryManagement.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    public class BookController : Controller
+    public class BookController : AdminBaseController
     {
         private readonly DataContext _context;
 
@@ -15,11 +15,24 @@ namespace LibraryManagement.Areas.Admin.Controllers
             _context = context;
         }
 
-        // 1. HIỂN THỊ DANH SÁCH SÁCH CÓ PHÂN TRANG (Lab 08)
-        public IActionResult Index(int page = 1)
+        // 1. HIỂN THỊ DANH SÁCH SÁCH CÓ TÌM KIẾM THEO MÃ & PHÂN TRANG (Lab 08)
+        public IActionResult Index(string? keyword, int page = 1)
         {
-            int pageSize = 6; // Hiển thị 6 cuốn sách trên 1 trang
-            var books = _context.Books.OrderByDescending(b => b.BookID);
+            int pageSize = 10;
+            var query = _context.Books.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(keyword))
+            {
+                string term = keyword.Trim().ToLower();
+                query = query.Where(b =>
+                    (b.Title != null && b.Title.ToLower().Contains(term)) ||
+                    (b.BookCode != null && b.BookCode.ToLower().Contains(term)) ||
+                    (b.Summary != null && b.Summary.ToLower().Contains(term))
+                );
+                ViewBag.Keyword = keyword;
+            }
+
+            var books = query.OrderByDescending(b => b.BookID);
             PagedList<tblBook> models = new PagedList<tblBook>(books, page, pageSize);
 
             ViewBag.Categories = _context.Categories.ToList();
@@ -35,10 +48,14 @@ namespace LibraryManagement.Areas.Admin.Controllers
             ViewBag.AuthorList = new SelectList(_context.Authors.Where(a => a.IsActive == true), "AuthorID", "AuthorName");
             ViewBag.PublisherList = new SelectList(_context.Publishers, "PublisherID", "PublisherName");
 
+            // Dự kiến mã sách
+            long nextId = (_context.Books.Max(b => (long?)b.BookID) ?? 0) + 1;
+            ViewBag.PreviewBookCode = $"MS{nextId:D4}";
+
             return View();
         }
 
-        // 2. THÊM MỚI SÁCH (POST)
+        // 2. THÊM MỚI SÁCH (POST) - TỰ ĐỘNG GÁN MÃ SÁCH NẾU CHƯA NHẬP
         [HttpPost]
         public IActionResult Create(tblBook book)
         {
@@ -48,6 +65,16 @@ namespace LibraryManagement.Areas.Admin.Controllers
                 book.AvailableQuantity = book.Quantity; // Ban đầu số sách khả dụng bằng tổng số sách
                 _context.Books.Add(book);
                 _context.SaveChanges();
+
+                // Tự động gán mã sách chuẩn nếu để trống
+                if (string.IsNullOrWhiteSpace(book.BookCode))
+                {
+                    book.BookCode = $"MS{book.BookID:D4}";
+                    _context.Books.Update(book);
+                    _context.SaveChanges();
+                }
+
+                TempData["Success"] = $"Thêm mới sách [{book.Code}] thành công!";
                 return RedirectToAction("Index");
             }
 

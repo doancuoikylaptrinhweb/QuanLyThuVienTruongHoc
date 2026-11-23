@@ -10,12 +10,20 @@
         <div class="card-body mt-4">
             <form method="post" asp-area="Admin" asp-controller="Book" asp-action="Create">
                 <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">Tên sách</label>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Mã sách</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-muted"><i class="bi bi-upc-scan"></i></span>
+                            <input type="text" class="form-control" asp-for="BookCode" placeholder="@ViewBag.PreviewBookCode (Tự động sinh nếu để trống)">
+                        </div>
+                        <small class="text-muted">Mã chuẩn thư viện: <code>MS000X</code></small>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Tên sách <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" asp-for="Title" required placeholder="Nhập tên sách...">
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">Thể loại / Danh mục</label>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Thể loại / Danh mục <span class="text-danger">*</span></label>
                         <select class="form-select" asp-for="CategoryID" asp-items="ViewBag.CategoryList" required>
                             <option value="">-- Chọn danh mục sách --</option>
                         </select>

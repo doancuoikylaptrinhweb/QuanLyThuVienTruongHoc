@@ -29,7 +29,7 @@
 
 <body>
 
-    <!-- 1. Top Announcement Bar (Header tím than đậm theo ảnh mẫu) -->
+    <!-- 1. Top Announcement Bar (Header tím than đậm cho cổng bạn đọc) -->
     <div class="top-notice-bar">
         <div class="container d-flex flex-wrap justify-content-between align-items-center">
             <div class="d-flex align-items-center gap-3 gap-md-4 small">
@@ -42,10 +42,10 @@
         </div>
     </div>
 
-    <!-- 2. Main Client Navbar -->
+    <!-- 2. Main Client Navbar Dành Riêng Cho Khách & Độc Giả -->
     <nav class="navbar navbar-expand-lg client-navbar sticky-top">
         <div class="container">
-            <!-- Brand Logo -->
+            <!-- Brand Logo Cổng Độc Giả -->
             <a class="navbar-brand d-flex align-items-center gap-2 text-decoration-none me-3" href="/">
                 <div class="brand-badge-icon">
                     <i class="bi bi-book-half"></i>
@@ -70,7 +70,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link nav-link-modern" href="#tim-kiem">
+                        <a class="nav-link nav-link-modern" href="#kho-sach">
                             <i class="bi bi-search"></i> Tra cứu sách
                         </a>
                     </li>
@@ -92,48 +92,90 @@
                     <input type="text" name="searchString" class="nav-search-input" placeholder="Tìm tên sách, ISBN..." value="@ViewBag.SearchString">
                 </form>
 
-                <!-- Action Buttons: Trang Quản Trị & Phiếu Mượn & User -->
+                <!-- Khu vực điều khiển người dùng (Tách riêng khách vãng lai & Admin) -->
                 <div class="d-flex align-items-center gap-2 flex-wrap">
-                    <a href="/Admin" class="btn-admin-pill">
-                        <i class="bi bi-shield-lock-fill"></i> Trang Quản Trị
-                    </a>
+                    @if (!Functions.IsLogin())
+                    {
+                        <!-- TRẠNG THÁI KHÁCH TRUY CẬP (GUEST): HOÀN TOÀN KHÔNG HIỆN THÔNG TIN ADMIN -->
+                        <button type="button" class="btn-ticket-pill" data-bs-toggle="modal" data-bs-target="#myTicketsModal">
+                            <i class="bi bi-card-checklist text-primary"></i> Tra cứu phiếu mượn
+                        </button>
+                        
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" class="btn btn-outline-primary rounded-pill px-3 py-2 fw-semibold d-flex align-items-center gap-1 shadow-sm" onclick="openAuthModal('login')">
+                                <i class="bi bi-box-arrow-in-right"></i> Đăng Nhập
+                            </button>
+                            <button type="button" class="btn btn-primary rounded-pill px-3 py-2 fw-semibold d-flex align-items-center gap-1 shadow-sm" onclick="openAuthModal('register')">
+                                <i class="bi bi-person-plus"></i> Đăng Ký
+                            </button>
+                        </div>
+                    }
+                    else if (Functions._Role == "Reader")
+                    {
+                        <!-- TRẠNG THÁI ĐỘC GIẢ / BẠN ĐỌC ĐÃ ĐĂNG NHẬP (KHÔNG HIỆN ADMIN) -->
+                        <button type="button" class="btn-ticket-pill" data-bs-toggle="modal" data-bs-target="#myTicketsModal">
+                            <i class="bi bi-card-checklist text-primary"></i> Phiếu mượn của tôi
+                        </button>
 
-                    <button type="button" class="btn-ticket-pill" data-bs-toggle="modal" data-bs-target="#myTicketsModal">
-                        <i class="bi bi-card-checklist text-primary"></i> Phiếu mượn của tôi
-                    </button>
-
-                    <!-- User Profile Dropdown -->
-                    <div class="dropdown">
-                        <a class="d-flex align-items-center gap-2 text-decoration-none dropdown-toggle ps-1" href="#" data-bs-toggle="dropdown">
-                            <div class="purple-avatar">N</div>
-                            <span class="d-none d-xl-inline fw-semibold text-dark small">
-                                @(string.IsNullOrEmpty(Functions._UserName) ? "Nguyễn Quản Trị..." : (Functions._UserName.Length > 16 ? Functions._UserName.Substring(0, 16) + "..." : Functions._UserName))
-                            </span>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2" style="font-size: 13.5px;">
-                            <li class="dropdown-header text-start">
-                                <h6 class="mb-0 fw-bold">@(string.IsNullOrEmpty(Functions._UserName) ? "Nguyễn Quản Trị (Admin)" : Functions._UserName)</h6>
-                                <small class="text-muted">@(string.IsNullOrEmpty(Functions._Email) ? "admin@thuvien.edu.vn" : Functions._Email)</small>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item d-flex align-items-center gap-2" href="/Admin">
-                                    <i class="bi bi-speedometer2 text-primary"></i> Bảng điều khiển Admin
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item d-flex align-items-center gap-2" href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#myTicketsModal">
-                                    <i class="bi bi-journal-check text-success"></i> Danh sách phiếu mượn
-                                </a>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item d-flex align-items-center gap-2 text-danger" href="/Admin/Home/Logout">
-                                    <i class="bi bi-box-arrow-right"></i> Đăng xuất
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
+                        <div class="dropdown">
+                            <a class="d-flex align-items-center gap-2 text-decoration-none dropdown-toggle ps-1" href="#" data-bs-toggle="dropdown">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm" style="width: 36px; height: 36px; background: #059669; font-size: 14px;">
+                                    @(Functions._UserName.Length > 0 ? Functions._UserName.Substring(0, 1).ToUpper() : "U")
+                                </div>
+                                <span class="d-none d-xl-inline fw-semibold text-dark small">
+                                    @Functions._UserName
+                                </span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2" style="font-size: 13.5px;">
+                                <li class="dropdown-header text-start">
+                                    <h6 class="mb-0 fw-bold text-dark">@Functions._UserName</h6>
+                                    <small class="text-muted">Tài khoản Bạn đọc</small>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center gap-2" href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#myTicketsModal">
+                                        <i class="bi bi-journal-check text-success"></i> Xem phiếu mượn cá nhân
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center gap-2 text-danger" href="/Home/Logout">
+                                        <i class="bi bi-box-arrow-right"></i> Đăng xuất
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    }
+                    else if (Functions.IsAdmin())
+                    {
+                        <!-- QUẢN TRỊ VIÊN ĐÃ ĐĂNG NHẬP -->
+                        <div class="dropdown">
+                            <a class="d-flex align-items-center gap-2 text-decoration-none dropdown-toggle ps-1" href="#" data-bs-toggle="dropdown">
+                                <div class="purple-avatar">N</div>
+                                <span class="d-none d-xl-inline fw-semibold text-dark small">
+                                    @Functions._UserName
+                                </span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2" style="font-size: 13.5px;">
+                                <li class="dropdown-header text-start">
+                                    <h6 class="mb-0 fw-bold">@Functions._UserName</h6>
+                                    <small class="text-muted">Quản trị viên / Thủ thư</small>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center gap-2 text-primary fw-semibold" href="/Admin">
+                                        <i class="bi bi-speedometer2"></i> Vào Bảng Điều Khiển Admin
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center gap-2 text-danger" href="/Home/Logout">
+                                        <i class="bi bi-box-arrow-right"></i> Đăng xuất
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    }
                 </div>
 
             </div>
@@ -145,7 +187,7 @@
         @RenderBody()
     </div>
 
-    <!-- Footer -->
+    <!-- Footer Dành Riêng Cho Độc Giả (Không lộ đường dẫn quản trị cho khách) -->
     <footer class="bg-white border-top py-5 mt-5">
         <div class="container">
             <div class="row g-4">
@@ -160,12 +202,12 @@
                         </div>
                     </div>
                     <p class="text-muted small mb-3" style="line-height: 1.6;">
-                        Hệ thống thư viện điện tử kết hợp trợ lý AI thông minh, hỗ trợ tra cứu sách trên kệ số, đặt mượn tài liệu trực tuyến 24/7 và gia hạn mượn tiện lợi.
+                        Hệ thống thư viện điện tử kết hợp trợ lý AI thông minh, hỗ trợ bạn đọc tra cứu kho tài liệu số, vị trí kệ sách và hướng dẫn mượn trả trực tuyến 24/7.
                     </p>
                     <div class="d-flex gap-2">
-                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">ASP.NET Core MVC</span>
-                        <span class="badge bg-success-subtle text-success border border-success-subtle">SQL Server</span>
-                        <span class="badge bg-info-subtle text-info border border-info-subtle">AI Chatbot</span>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Cổng Bạn Đọc</span>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle">Tra Cứu Kệ Sách</span>
+                        <span class="badge bg-info-subtle text-info border border-info-subtle">Trợ Lý AI 24/7</span>
                     </div>
                 </div>
 
@@ -180,10 +222,10 @@
                 </div>
 
                 <div class="col-sm-6 col-lg-4">
-                    <h6 class="fw-bold text-dark mb-3">Liên Kết Nhanh</h6>
+                    <h6 class="fw-bold text-dark mb-3">Dành Cho Bạn Đọc</h6>
                     <ul class="list-unstyled text-muted small d-flex flex-column gap-2 mb-0">
                         <li><a href="/" class="text-decoration-none text-muted"><i class="bi bi-chevron-right me-1 text-primary"></i> Trang chủ cổng thư viện</a></li>
-                        <li><a href="/Admin" class="text-decoration-none text-muted"><i class="bi bi-chevron-right me-1 text-primary"></i> Phân hệ dành cho Thủ thư &amp; Quản trị</a></li>
+                        <li><a href="#kho-sach" class="text-decoration-none text-muted"><i class="bi bi-chevron-right me-1 text-primary"></i> Tra cứu danh mục kho sách</a></li>
                         <li><a href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#noiQuyModal" class="text-decoration-none text-muted"><i class="bi bi-chevron-right me-1 text-primary"></i> Nội quy mượn trả tài liệu</a></li>
                         <li><a href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#myTicketsModal" class="text-decoration-none text-muted"><i class="bi bi-chevron-right me-1 text-primary"></i> Tra cứu phiếu mượn cá nhân</a></li>
                     </ul>
@@ -193,8 +235,8 @@
             <hr class="my-4 text-muted opacity-25">
 
             <div class="d-flex flex-wrap justify-content-between align-items-center small text-muted">
-                <div>&copy; 2026 <strong>Thư Viện Số - Trường Học Thông Minh</strong>. Đồ án xây dựng trên nền tảng ASP.NET Core.</div>
-                <div>Thiết kế giao diện hiện đại Visual Blue Theme.</div>
+                <div>&copy; 2026 <strong>Thư Viện Số - Trường Học Thông Minh</strong>. Cổng thông tin phục vụ bạn đọc &amp; sinh viên.</div>
+                <div>Giao diện trực quan hiện đại Visual Blue Theme.</div>
             </div>
         </div>
     </footer>
@@ -258,7 +300,7 @@
                             <span>Hiển thị chính xác vị trí tầng, kệ và ngăn sách trong kho thực tế.</span>
                         </div>
                     </div>
-                    <div class="text-muted">Phát triển với nền tảng ASP.NET Core &amp; SQL Server hiện đại.</div>
+                    <div class="text-muted">Cổng phục vụ trực tuyến 24/7 dành cho sinh viên và bạn đọc.</div>
                 </div>
                 <div class="modal-footer border-0">
                     <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Đóng</button>
@@ -267,40 +309,58 @@
         </div>
     </div>
 
-    <!-- MODAL 3: PHIẾU MƯỢN CỦA TÔI -->
+    <!-- MODAL 3: TRA CỨU PHIẾU MƯỢN / PHIẾU TRẢ CỦA TÔI -->
     <div class="modal fade" id="myTicketsModal" tabindex="-1" aria-labelledby="myTicketsModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header bg-primary text-white rounded-top-4">
-                    <h5 class="modal-title fw-bold" id="myTicketsModalLabel"><i class="bi bi-card-checklist me-2"></i> Phiếu Mượn Sách Của Tôi</h5>
+                    <h5 class="modal-title fw-bold" id="myTicketsModalLabel"><i class="bi bi-card-checklist me-2"></i> Tra Cứu Phiếu Mượn &amp; Trả Sách</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
+                    <!-- Quick Search for Guests / Readers -->
+                    <div class="p-3 bg-light rounded-4 border mb-4">
+                        <label class="form-label fw-semibold small text-dark mb-1">Tra cứu nhanh bằng Mã phiếu mượn (PM...), Mã trả sách (PT...) hoặc Mã bạn đọc (DG...):</label>
+                        <div class="d-flex gap-2">
+                            <input type="text" id="ticketSearchInput" class="form-control" placeholder="Ví dụ: PM0001, PT0001, DG0001, an.nguyen..." onkeypress="if(event.key === 'Enter') searchTicketAction()">
+                            <button type="button" id="btnTicketSearch" class="btn btn-primary px-4 fw-semibold" onclick="searchTicketAction()">
+                                <i class="bi bi-search me-1"></i> Tra cứu
+                            </button>
+                        </div>
+                        <div id="ticketSearchAlert" class="alert alert-danger d-none mt-2 mb-0 py-2 px-3 small rounded-3"></div>
+                    </div>
+
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0" style="font-size: 13.5px;">
                             <thead class="table-light">
                                 <tr>
                                     <th>Mã phiếu</th>
+                                    <th>Mã trả</th>
                                     <th>Tên sách</th>
+                                    <th>Bạn đọc</th>
                                     <th>Ngày mượn</th>
                                     <th>Hạn trả</th>
                                     <th>Trạng thái</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="ticketResultBody">
                                 <tr>
-                                    <td><span class="badge" style="background: #eef2ff; color: #4338ca; font-weight: 600;">PM-202611-001</span></td>
+                                    <td><span class="badge" style="background: #eef2ff; color: #4338ca; font-weight: 700;">PM0001</span></td>
+                                    <td><span class="text-muted small">---</span></td>
                                     <td><strong>Harry Potter và Hòn Đá Phù Thủy</strong></td>
+                                    <td><span class="badge bg-light text-dark border me-1">DG0001</span> Nguyễn Văn An</td>
                                     <td>07/11/2026</td>
                                     <td>21/11/2026</td>
-                                    <td><span class="badge" style="background: #dcfce7; color: #15803d; font-weight: 600; padding: 6px 12px; border-radius: 50px;">Đang mượn</span></td>
+                                    <td><span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-3">Đang mượn</span></td>
                                 </tr>
                                 <tr>
-                                    <td><span class="badge" style="background: #eef2ff; color: #4338ca; font-weight: 600;">PM-202610-042</span></td>
+                                    <td><span class="badge" style="background: #eef2ff; color: #4338ca; font-weight: 700;">PM0002</span></td>
+                                    <td><span class="badge" style="background: #ecfdf5; color: #059669; font-weight: 700;">PT0002</span></td>
                                     <td><strong>Clean Code - Mã Sạch Thực Chiến</strong></td>
+                                    <td><span class="badge bg-light text-dark border me-1">DG0002</span> Trần Thị Bình</td>
                                     <td>15/10/2026</td>
                                     <td>29/10/2026</td>
-                                    <td><span class="badge bg-secondary-subtle text-secondary" style="font-weight: 600; padding: 6px 12px; border-radius: 50px;">Đã trả</span></td>
+                                    <td><span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3">Đã trả</span></td>
                                 </tr>
                             </tbody>
                         </table>
@@ -308,6 +368,135 @@
                 </div>
                 <div class="modal-footer border-0">
                     <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 4: ĐĂNG NHẬP & ĐĂNG KÝ CHO BẠN ĐỌC -->
+    <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header bg-primary text-white pb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-shield-lock-fill fs-4"></i>
+                        <h5 class="modal-title fw-bold mb-0" id="loginModalLabel">Cổng Xác Thực Bạn Đọc</h5>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                
+                <div class="modal-body p-4">
+                    <!-- Nav Tabs Chọn Đăng Nhập hoặc Đăng Ký -->
+                    <ul class="nav nav-pills nav-fill p-1 bg-light rounded-pill mb-4" id="authTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active rounded-pill fw-semibold py-2" id="tab-login-btn" data-bs-toggle="pill" data-bs-target="#tab-login" type="button" role="tab" aria-selected="true">
+                                <i class="bi bi-box-arrow-in-right me-1"></i> Đăng Nhập
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link rounded-pill fw-semibold py-2" id="tab-register-btn" data-bs-toggle="pill" data-bs-target="#tab-register" type="button" role="tab" aria-selected="false">
+                                <i class="bi bi-person-plus me-1"></i> Đăng Ký Mới
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="authTabContent">
+                        <!-- TAB 1: ĐĂNG NHẬP -->
+                        <div class="tab-pane fade show active" id="tab-login" role="tabpanel">
+                            <div id="loginAlert" class="alert alert-danger d-none rounded-3 py-2 px-3 small"></div>
+                            
+                            <form id="clientLoginForm" onsubmit="handleClientLogin(event)">
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold small">Tên đăng nhập / Mã bạn đọc <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-person"></i></span>
+                                        <input type="text" id="clientLoginUser" class="form-control border-start-0 ps-0" required placeholder="Ví dụ: docgia01, an.nguyen...">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold small">Mật khẩu <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-key"></i></span>
+                                        <input type="password" id="clientLoginPass" class="form-control border-start-0 ps-0" required placeholder="Nhập mật khẩu...">
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-3 small">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="rememberMe">
+                                        <label class="form-check-label text-muted" for="rememberMe">Ghi nhớ đăng nhập</label>
+                                    </div>
+                                    <a href="javascript:void(0)" onclick="alert('Vui lòng liên hệ quầy Thủ thư để được hỗ trợ cấp lại mật khẩu thẻ thư viện!')" class="text-decoration-none">Quên mật khẩu?</a>
+                                </div>
+                                <button type="submit" id="clientLoginBtn" class="btn btn-primary w-100 rounded-pill py-2 fw-semibold shadow-sm">
+                                    <i class="bi bi-box-arrow-in-right me-1"></i> Đăng Nhập
+                                </button>
+                            </form>
+
+                            <div class="text-center mt-3 small text-muted">
+                                Chưa có tài khoản bạn đọc? 
+                                <a href="javascript:void(0)" onclick="switchAuthTab('register')" class="text-primary fw-semibold text-decoration-none ms-1">Đăng ký ngay</a>
+                            </div>
+                        </div>
+
+                        <!-- TAB 2: ĐĂNG KÝ -->
+                        <div class="tab-pane fade" id="tab-register" role="tabpanel">
+                            <div id="registerAlert" class="alert d-none rounded-3 py-2 px-3 small"></div>
+
+                            <form id="clientRegisterForm" onsubmit="handleClientRegister(event)">
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold small">Họ và tên <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-card-text"></i></span>
+                                        <input type="text" id="regFullName" class="form-control border-start-0 ps-0" required placeholder="Ví dụ: Nguyễn Văn An">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold small">Tên đăng nhập <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-person-badge"></i></span>
+                                        <input type="text" id="regUserName" class="form-control border-start-0 ps-0" required placeholder="Tối thiểu 3 ký tự (ví dụ: annguyen)">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold small">Email (tùy chọn)</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-envelope"></i></span>
+                                        <input type="email" id="regEmail" class="form-control border-start-0 ps-0" placeholder="an.nguyen@sinhvien.edu.vn">
+                                    </div>
+                                </div>
+                                <div class="row g-2 mb-3">
+                                    <div class="col-sm-6">
+                                        <label class="form-label fw-semibold small">Mật khẩu <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-lock"></i></span>
+                                            <input type="password" id="regPassword" class="form-control border-start-0 ps-0" required placeholder="Tối thiểu 6 ký tự">
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label class="form-label fw-semibold small">Nhập lại mật khẩu <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-check2-circle"></i></span>
+                                            <input type="password" id="regConfirmPassword" class="form-control border-start-0 ps-0" required placeholder="Xác nhận lại">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button type="submit" id="clientRegisterBtn" class="btn btn-success w-100 rounded-pill py-2 fw-semibold shadow-sm">
+                                    <i class="bi bi-person-check me-1"></i> Hoàn Tất Đăng Ký
+                                </button>
+                            </form>
+
+                            <div class="text-center mt-3 small text-muted">
+                                Đã có tài khoản bạn đọc? 
+                                <a href="javascript:void(0)" onclick="switchAuthTab('login')" class="text-primary fw-semibold text-decoration-none ms-1">Đăng nhập ngay</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-0 bg-light p-3 text-center d-block">
+                    <span class="text-muted small">Cần hỗ trợ làm thẻ thư viện vật lý?</span>
+                    <a href="javascript:void(0)" onclick="alert('Bạn đọc đến trực tiếp Quầy Thủ thư tại Tầng 1 - Tòa nhà Trung Tâm để nhận thẻ thư viện và mượn giáo trình!')" class="text-decoration-none fw-semibold ms-1">Hướng dẫn quầy thủ thư</a>
                 </div>
             </div>
         </div>
@@ -399,6 +588,189 @@
             .catch(err => {
                 container.innerHTML += '<div class="chat-bubble chat-bot-bubble text-danger">Có lỗi kết nối, vui lòng thử lại!</div>';
                 container.scrollTop = container.scrollHeight;
+            });
+        }
+
+        // Mở Modal Xác Thực (Đăng Nhập hoặc Đăng Ký)
+        function openAuthModal(mode) {
+            var modalEl = document.getElementById('loginModal');
+            var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+            switchAuthTab(mode);
+        }
+
+        // Chuyển đổi qua lại giữa tab Đăng Nhập và Đăng Ký
+        function switchAuthTab(tab) {
+            if (tab === 'register') {
+                var regBtn = document.getElementById('tab-register-btn');
+                if (regBtn) {
+                    var trigger = new bootstrap.Tab(regBtn);
+                    trigger.show();
+                }
+            } else {
+                var loginBtn = document.getElementById('tab-login-btn');
+                if (loginBtn) {
+                    var trigger = new bootstrap.Tab(loginBtn);
+                    trigger.show();
+                }
+            }
+        }
+
+        // Xử lý đăng ký tài khoản từ trang chủ khách
+        function handleClientRegister(e) {
+            e.preventDefault();
+            var fullName = document.getElementById("regFullName").value.trim();
+            var userName = document.getElementById("regUserName").value.trim();
+            var email = document.getElementById("regEmail").value.trim();
+            var password = document.getElementById("regPassword").value;
+            var confirmPassword = document.getElementById("regConfirmPassword").value;
+            var alertBox = document.getElementById("registerAlert");
+            var btn = document.getElementById("clientRegisterBtn");
+
+            alertBox.className = "alert alert-danger d-none rounded-3 py-2 px-3 small";
+
+            if (password !== confirmPassword) {
+                alertBox.textContent = "Mật khẩu xác nhận không khớp!";
+                alertBox.classList.remove("d-none");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang tạo tài khoản...';
+
+            var formData = new FormData();
+            formData.append("fullName", fullName);
+            formData.append("userName", userName);
+            formData.append("email", email);
+            formData.append("password", password);
+            formData.append("confirmPassword", confirmPassword);
+
+            fetch('/Home/Register', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alertBox.className = "alert alert-success rounded-3 py-2 px-3 small";
+                    alertBox.textContent = data.message || "Đăng ký thành công! Đang chuyển hướng...";
+                    alertBox.classList.remove("d-none");
+                    setTimeout(() => {
+                        window.location.href = data.redirectUrl || '/';
+                    }, 1200);
+                } else {
+                    alertBox.className = "alert alert-danger rounded-3 py-2 px-3 small";
+                    alertBox.textContent = data.message || "Đăng ký thất bại, vui lòng thử lại!";
+                    alertBox.classList.remove("d-none");
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-person-check me-1"></i> Hoàn Tất Đăng Ký';
+                }
+            })
+            .catch(err => {
+                alertBox.className = "alert alert-danger rounded-3 py-2 px-3 small";
+                alertBox.textContent = "Có lỗi kết nối, vui lòng thử lại!";
+                alertBox.classList.remove("d-none");
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-person-check me-1"></i> Hoàn Tất Đăng Ký';
+            });
+        }
+
+        // Xử lý đăng nhập từ trang chủ khách
+        function handleClientLogin(e) {
+            e.preventDefault();
+            var user = document.getElementById("clientLoginUser").value.trim();
+            var pass = document.getElementById("clientLoginPass").value.trim();
+            var alertBox = document.getElementById("loginAlert");
+            var btn = document.getElementById("clientLoginBtn");
+
+            alertBox.classList.add("d-none");
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang xử lý...';
+
+            var formData = new FormData();
+            formData.append("userName", user);
+            formData.append("password", pass);
+
+            fetch('/Home/Login', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = data.redirectUrl || '/';
+                } else {
+                    alertBox.textContent = data.message || "Tên đăng nhập hoặc mật khẩu không chính xác!";
+                    alertBox.classList.remove("d-none");
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-box-arrow-in-right me-1"></i> Đăng Nhập';
+                }
+            })
+            .catch(err => {
+                alertBox.textContent = "Có lỗi kết nối, vui lòng thử lại!";
+                alertBox.classList.remove("d-none");
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-box-arrow-in-right me-1"></i> Đăng Nhập';
+            });
+        }
+
+        // Xử lý tra cứu phiếu mượn & trả sách qua API
+        function searchTicketAction() {
+            var input = document.getElementById("ticketSearchInput");
+            var code = input.value.trim();
+            var alertBox = document.getElementById("ticketSearchAlert");
+            var tbody = document.getElementById("ticketResultBody");
+            var btn = document.getElementById("btnTicketSearch");
+
+            alertBox.classList.add("d-none");
+
+            if (!code) {
+                alertBox.textContent = "Vui lòng nhập Mã phiếu mượn (PM...), Mã trả (PT...) hoặc Mã bạn đọc (DG...)!";
+                alertBox.classList.remove("d-none");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang tra...';
+
+            fetch('/Home/SearchTicket?keyword=' + encodeURIComponent(code))
+            .then(res => res.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-search me-1"></i> Tra cứu';
+
+                if (data.success && data.data && data.data.length > 0) {
+                    var html = "";
+                    data.data.forEach(item => {
+                        var returnBadge = item.status === "Đã trả" 
+                            ? '<span class="badge" style="background: #ecfdf5; color: #059669; font-weight: 700;">' + item.returnCode + '</span>'
+                            : '<span class="text-muted small">---</span>';
+
+                        var statusBadge = item.status === "Đã trả"
+                            ? '<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3">Đã trả</span>'
+                            : '<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-3">Đang mượn</span>';
+
+                        html += '<tr>' +
+                            '<td><span class="badge" style="background: #eef2ff; color: #4338ca; font-weight: 700;">' + item.ticketCode + '</span></td>' +
+                            '<td>' + returnBadge + '</td>' +
+                            '<td><strong>' + item.bookTitle + '</strong></td>' +
+                            '<td><span class="badge bg-light text-dark border me-1">' + item.userCode + '</span> ' + item.userName + '</td>' +
+                            '<td>' + item.borrowDate + '</td>' +
+                            '<td>' + item.dueDate + '</td>' +
+                            '<td>' + statusBadge + '</td>' +
+                        '</tr>';
+                    });
+                    tbody.innerHTML = html;
+                } else {
+                    alertBox.textContent = data.message || "Không tìm thấy dữ liệu phù hợp!";
+                    alertBox.classList.remove("d-none");
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-search me-1"></i> Tra cứu';
+                alertBox.textContent = "Có lỗi kết nối máy chủ, vui lòng thử lại!";
+                alertBox.classList.remove("d-none");
             });
         }
     </script>

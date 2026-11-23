@@ -6,7 +6,7 @@ using LibraryManagement.Utilities;
 namespace LibraryManagement.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    public class UserController : Controller
+    public class UserController : AdminBaseController
     {
         private readonly DataContext _context;
 
@@ -80,7 +80,8 @@ namespace LibraryManagement.Areas.Admin.Controllers
                     (u.FullName != null && u.FullName.ToLower().Contains(term)) ||
                     (u.UserName != null && u.UserName.ToLower().Contains(term)) ||
                     (u.Email != null && u.Email.ToLower().Contains(term)) ||
-                    (u.Role != null && u.Role.ToLower().Contains(term))
+                    (u.Role != null && u.Role.ToLower().Contains(term)) ||
+                    (u.UserCode != null && u.UserCode.ToLower().Contains(term))
                 );
                 ViewBag.Keyword = keyword;
             }
@@ -127,7 +128,15 @@ namespace LibraryManagement.Areas.Admin.Controllers
             _context.Users.Add(user);
             _context.SaveChanges();
 
-            TempData["Success"] = $"Đã tạo thành công tài khoản '{user.UserName}' với quyền '{user.Role}'!";
+            // Tự động gán Mã người dùng chuẩn nếu chưa nhập
+            if (string.IsNullOrWhiteSpace(user.UserCode))
+            {
+                user.UserCode = user.Role == "Admin" ? $"AD{user.UserID:D4}" : (user.Role == "Librarian" ? $"TT{user.UserID:D4}" : $"DG{user.UserID:D4}");
+                _context.Users.Update(user);
+                _context.SaveChanges();
+            }
+
+            TempData["Success"] = $"Đã tạo thành công tài khoản [{user.Code}] '{user.UserName}' với quyền '{user.Role}'!";
             return RedirectToAction(nameof(Index));
         }
 
