@@ -48,9 +48,10 @@ namespace LibraryManagement.Areas.Admin.Controllers
         }
 
         // 2. THÊM MỚI TÁC GIẢ (CREATE - GET)
+        [HttpGet]
         public IActionResult Create()
         {
-            return View();
+            return View(new tblAuthor { IsActive = true });
         }
 
         // 2. THÊM MỚI TÁC GIẢ (CREATE - POST)
@@ -65,16 +66,67 @@ namespace LibraryManagement.Areas.Admin.Controllers
 
             if (ModelState.IsValid)
             {
-                author.AuthorName = author.AuthorName.Trim();
-                author.IsActive = author.IsActive ?? true;
-                _context.Authors.Add(author);
-                _context.SaveChanges();
+                try
+                {
+                    string name = author.AuthorName!.Trim();
+                    author.AuthorName = name;
+                    author.IsActive = author.IsActive ?? true;
 
-                TempData["Success"] = $"Đã thêm thành công tác giả: {author.AuthorName}!";
-                return RedirectToAction(nameof(Index));
+                    _context.Authors.Add(author);
+                    _context.SaveChanges();
+
+                    TempData["Success"] = $"Đã thêm thành công tác giả: {author.AuthorName}!";
+                    return RedirectToAction(nameof(Index));
+                }
+                catch (Exception ex)
+                {
+                    TempData["Error"] = "Lỗi khi lưu tác giả vào CSDL: " + ex.Message;
+                    ModelState.AddModelError("", "Lỗi khi lưu tác giả: " + ex.Message);
+                }
             }
 
             return View(author);
+        }
+
+        // 2b. THÊM NHANH TÁC GIẢ QUA AJAX / MODAL
+        [HttpPost]
+        public IActionResult QuickCreate(string authorName, string? bio)
+        {
+            if (string.IsNullOrWhiteSpace(authorName))
+            {
+                return Json(new { success = false, message = "Vui lòng nhập tên tác giả!" });
+            }
+
+            try
+            {
+                string name = authorName.Trim();
+                var existing = _context.Authors.FirstOrDefault(a => a.AuthorName != null && a.AuthorName.ToLower() == name.ToLower());
+                if (existing != null)
+                {
+                    return Json(new { success = false, message = $"Tác giả '{name}' đã tồn tại trong hệ thống (ID: #{existing.AuthorID})!" });
+                }
+
+                var author = new tblAuthor
+                {
+                    AuthorName = name,
+                    Bio = string.IsNullOrWhiteSpace(bio) ? null : bio.Trim(),
+                    IsActive = true
+                };
+
+                _context.Authors.Add(author);
+                _context.SaveChanges();
+
+                return Json(new { 
+                    success = true, 
+                    authorId = author.AuthorID, 
+                    authorName = author.AuthorName, 
+                    message = $"Đã thêm thành công tác giả '{author.AuthorName}'!" 
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi khi thêm tác giả: " + ex.Message });
+            }
         }
 
         // 3. CHỈNH SỬA TÁC GIẢ (EDIT - GET)
