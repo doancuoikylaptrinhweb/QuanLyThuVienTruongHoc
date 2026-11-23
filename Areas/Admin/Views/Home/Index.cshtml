@@ -202,22 +202,9 @@
                             else
                             {
                                 <tr>
-                                    <td class="fw-semibold">
-                                        <span class="badge" style="background: #eef2ff; color: #4338ca; font-weight: 600; padding: 6px 10px; border-radius: 6px;">
-                                            PM-202611-001
-                                        </span>
-                                    </td>
-                                    <td class="fw-medium text-dark">Lê Hoàng Nam (Sinh Viên)</td>
-                                    <td class="text-secondary">22/11/2026</td>
-                                    <td>
-                                        <span class="badge" style="background: #dcfce7; color: #15803d; font-weight: 600; padding: 6px 12px; border-radius: 50px;">
-                                            Đang mượn
-                                        </span>
-                                    </td>
-                                    <td class="text-center">
-                                        <a href="/Admin/Borrow" class="btn btn-sm btn-light border rounded-circle" style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
-                                            <i class="bi bi-eye text-secondary"></i>
-                                        </a>
+                                    <td colspan="5" class="text-center py-4 text-muted">
+                                        <i class="bi bi-inbox fs-3 d-block mb-1 opacity-50"></i>
+                                        Chưa có phiếu mượn nào được ghi nhận trong hệ thống.
                                     </td>
                                 </tr>
                             }
@@ -227,7 +214,7 @@
             </div>
         </div>
 
-        <!-- Right: Top Sách Mượn Nhiều -->
+        <!-- Right: Top Sách Mượn Nhiều (100% TRUY VẤN TỪ DATABASE) -->
         <div class="col-12 col-xl-5">
             <div class="card border-0 shadow-sm rounded-4 h-100 bg-white p-4">
                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -240,53 +227,38 @@
                 </div>
 
                 <div class="d-flex flex-column gap-3">
-                    <!-- Top Book 1 -->
-                    <div class="d-flex align-items-center gap-3 p-2 rounded-3" style="background: #f8fafc; border: 1px solid #f1f5f9;">
-                        <img src="/images/books/harry-potter.svg" class="rounded-2 shadow-sm" style="width: 44px; height: 60px; object-fit: cover;" alt="Harry Potter">
-                        <div class="flex-grow-1 overflow-hidden">
-                            <h6 class="fw-bold text-dark mb-1 text-truncate" style="font-size: 13.5px;">Harry Potter và Hòn Đá Phù Thủy (Tập 1)</h6>
-                            <div class="text-muted small mb-1" style="font-size: 11.5px;">Tác giả: J.K. Rowling</div>
-                            <span class="badge bg-white text-secondary border" style="font-size: 10.5px;">Kệ C4 - Tầng 2 (Ngăn 2)</span>
+                    @if (ViewBag.TopBooks != null && ((IEnumerable<dynamic>)ViewBag.TopBooks).Any())
+                    {
+                        foreach (var bk in (IEnumerable<dynamic>)ViewBag.TopBooks)
+                        {
+                            <div class="d-flex align-items-center gap-3 p-2 rounded-3" style="background: #f8fafc; border: 1px solid #f1f5f9;">
+                                <img src="@(bk.Image != null && bk.Image.StartsWith("/") ? bk.Image : "/" + bk.Image)" 
+                                     class="rounded-2 shadow-sm" style="width: 44px; height: 60px; object-fit: cover;" 
+                                     alt="@bk.Title" onerror="this.src='/images/books/book-placeholder.svg';">
+                                <div class="flex-grow-1 overflow-hidden">
+                                    <h6 class="fw-bold text-dark mb-1 text-truncate" style="font-size: 13.5px;" title="@bk.Title">@bk.Title</h6>
+                                    <div class="text-muted small mb-1" style="font-size: 11.5px;">Tác giả: @bk.Author</div>
+                                    <span class="badge bg-white text-secondary border" style="font-size: 10.5px;">Mã: @bk.Code</span>
+                                </div>
+                                <div class="text-end">
+                                    @if (bk.BorrowCount > 0)
+                                    {
+                                        <span class="badge" style="background: #4338ca; color: #ffffff; border-radius: 50px; font-weight: 600; font-size: 11px;">
+                                            @bk.BorrowCount lượt
+                                        </span>
+                                    }
+                                    <div class="text-muted small mt-1" style="font-size: 11px;">Còn @bk.AvailableQuantity</div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-4 text-muted small">
+                            <i class="bi bi-inbox fs-3 d-block mb-1 opacity-50"></i>
+                            Chưa có dữ liệu sách trong kho.
                         </div>
-                        <div class="text-end">
-                            <span class="badge" style="background: #4338ca; color: #ffffff; border-radius: 50px; font-weight: 600; font-size: 11px;">
-                                95 lượt
-                            </span>
-                            <div class="text-muted small mt-1" style="font-size: 11px;">Còn 4</div>
-                        </div>
-                    </div>
-
-                    <!-- Top Book 2 -->
-                    <div class="d-flex align-items-center gap-3 p-2 rounded-3" style="background: #f8fafc; border: 1px solid #f1f5f9;">
-                        <img src="/images/books/clean-code.svg" class="rounded-2 shadow-sm" style="width: 44px; height: 60px; object-fit: cover;" alt="Clean Code">
-                        <div class="flex-grow-1 overflow-hidden">
-                            <h6 class="fw-bold text-dark mb-1 text-truncate" style="font-size: 13.5px;">Clean Code - Mã Sạch Thực Chiến</h6>
-                            <div class="text-muted small mb-1" style="font-size: 11.5px;">Tác giả: Robert C. Martin</div>
-                            <span class="badge bg-white text-secondary border" style="font-size: 10.5px;">Kệ A1 - Tầng 1 (Ngăn 1)</span>
-                        </div>
-                        <div class="text-end">
-                            <span class="badge" style="background: #2563eb; color: #ffffff; border-radius: 50px; font-weight: 600; font-size: 11px;">
-                                82 lượt
-                            </span>
-                            <div class="text-muted small mt-1" style="font-size: 11px;">Còn 8</div>
-                        </div>
-                    </div>
-
-                    <!-- Top Book 3 -->
-                    <div class="d-flex align-items-center gap-3 p-2 rounded-3" style="background: #f8fafc; border: 1px solid #f1f5f9;">
-                        <img src="/images/books/mat-biec.svg" class="rounded-2 shadow-sm" style="width: 44px; height: 60px; object-fit: cover;" alt="Mắt Biếc">
-                        <div class="flex-grow-1 overflow-hidden">
-                            <h6 class="fw-bold text-dark mb-1 text-truncate" style="font-size: 13.5px;">Mắt Biếc (Tiểu Thuyết Tuổi Hoa)</h6>
-                            <div class="text-muted small mb-1" style="font-size: 11.5px;">Tác giả: Nguyễn Nhật Ánh</div>
-                            <span class="badge bg-white text-secondary border" style="font-size: 10.5px;">Kệ B2 - Tầng 1 (Ngăn 3)</span>
-                        </div>
-                        <div class="text-end">
-                            <span class="badge" style="background: #059669; color: #ffffff; border-radius: 50px; font-weight: 600; font-size: 11px;">
-                                74 lượt
-                            </span>
-                            <div class="text-muted small mt-1" style="font-size: 11px;">Còn 6</div>
-                        </div>
-                    </div>
+                    }
                 </div>
             </div>
         </div>

@@ -2,10 +2,16 @@
 @using PagedList.Core.Mvc
 @model PagedList.Core.IPagedList<tblBook>
 
+@{
+    ViewData["Title"] = "Quản lý Kho Sách & Tồn Kho";
+    var categories = ViewBag.Categories as Dictionary<int, string>;
+    var authors = ViewBag.Authors as Dictionary<int, string>;
+}
+
 <main id="main" class="main">
     <div class="pagetitle mb-3">
         <h2>Kho Sách Thư Viện</h2>
-        <p class="text-muted small mb-0">Quản lý danh mục sách, số lượng tồn kho và mã sách chuẩn hóa (MS0001, MS0002...)</p>
+        <p class="text-muted small mb-0">Quản lý danh mục sách, số lượng tồn kho tự động đồng bộ và áp dụng quy tắc bảo toàn dữ liệu (Soft Delete).</p>
     </div>
 
     <!-- Alert Notifications -->
@@ -16,12 +22,75 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-4 border-0 shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Stat Metric Badges -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-4 p-3 d-flex align-items-center justify-content-center" style="background:#eff6ff;color:#2563eb;font-size:22px;">
+                        <i class="bi bi-journal-bookmark-fill"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small fw-medium">Tổng đầu sách</div>
+                        <h4 class="fw-bold mb-0 text-dark">@ViewBag.TotalTitles</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-4 p-3 d-flex align-items-center justify-content-center" style="background:#f0fdf4;color:#16a34a;font-size:22px;">
+                        <i class="bi bi-books"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small fw-medium">Tổng bản sách (Kho)</div>
+                        <h4 class="fw-bold mb-0 text-dark">@ViewBag.TotalCopies</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-4 p-3 d-flex align-items-center justify-content-center" style="background:#ecfdf5;color:#059669;font-size:22px;">
+                        <i class="bi bi-check2-circle"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small fw-medium">Khả dụng trên kệ</div>
+                        <h4 class="fw-bold mb-0 text-success">@ViewBag.TotalAvailable</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-4 p-3 d-flex align-items-center justify-content-center" style="background:#fff7ed;color:#ea580c;font-size:22px;">
+                        <i class="bi bi-hourglass-split"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small fw-medium">Đang cho mượn</div>
+                        <h4 class="fw-bold mb-0 text-warning-emphasis">@ViewBag.TotalBorrowed</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Search & Action Toolbar -->
     <div class="card border-0 shadow-sm rounded-4 mb-4">
         <div class="card-body p-3">
             <div class="row g-2 align-items-center">
-                <div class="col-md-7">
+                <div class="col-md-6">
                     <form method="get" asp-area="Admin" asp-controller="Book" asp-action="Index" class="d-flex gap-2">
                         <div class="input-group">
                             <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
@@ -40,7 +109,15 @@
                         }
                     </form>
                 </div>
-                <div class="col-md-5 text-md-end">
+                <div class="col-md-6 text-md-end d-flex gap-2 justify-content-md-end flex-wrap">
+                    <!-- Nút Đồng bộ tồn kho -->
+                    <form method="post" asp-area="Admin" asp-controller="Book" asp-action="SyncInventory" class="d-inline"
+                          onsubmit="return confirm('Hệ thống sẽ đối soát toàn bộ phiếu mượn thực tế và tự động hiệu chỉnh lại số lượng tồn kho khả dụng cho tất cả đầu sách. Tiếp tục thực hiện?');">
+                        <button type="submit" class="btn btn-outline-primary rounded-pill px-3 py-2 fw-semibold shadow-sm" title="Đối soát và tự động sửa sai lệch tồn kho">
+                            <i class="bi bi-arrow-repeat me-1"></i> Đồng bộ tồn kho
+                        </button>
+                    </form>
+                    <!-- Nút Thêm sách mới -->
                     <a class="btn btn-success rounded-pill px-4 py-2 fw-semibold shadow-sm" asp-area="Admin" asp-controller="Book" asp-action="Create">
                         <i class="bi bi-plus-circle me-1"></i> Thêm sách mới
                     </a>
@@ -54,60 +131,132 @@
             <div class="col-12">
                 <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
                     <div class="card-body p-4">
-                        <table class="table table-hover align-middle mb-0" style="font-size: 13.5px;">
-                            <thead class="table-light">
-                                <tr>
-                                    <th class="text-center" style="width: 100px;">Mã sách</th>
-                                    <th class="text-center" style="width: 80px;">Ảnh bìa</th>
-                                    <th>Tên sách</th>
-                                    <th class="text-center">Tổng kho</th>
-                                    <th class="text-center">Khả dụng</th>
-                                    <th class="text-center">Trạng thái</th>
-                                    <th class="text-center">Chức năng</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var item in Model)
-                                {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0" style="font-size: 13.5px;">
+                                <thead class="table-light">
                                     <tr>
-                                        <!-- Mã sách -->
-                                        <td class="text-center">
-                                            <span class="badge" style="background: #eef2ff; color: #4338ca; font-weight: 700; font-size: 12.5px; padding: 6px 10px; border-radius: 6px;">
-                                                @item.Code
-                                            </span>
-                                        </td>
-                                        <td class="text-center" style="width: 80px;">
-                                            <img src="@(item.Images != null && item.Images.StartsWith("/") ? item.Images : "/" + item.Images)" 
-                                                 alt="@item.Title" style="width: 50px; height: 70px; object-fit: cover; border-radius: 6px;" onerror="this.src='/images/books/book-placeholder.svg';" />
-                                        </td>
-                                        <td>
-                                            <strong class="text-dark">@item.Title</strong>
-                                            <div class="small text-muted">Năm XB: @item.PublishYear</div>
-                                        </td>
-                                        <td class="text-center fw-semibold">@item.Quantity</td>
-                                        <td class="text-center fw-bold text-success">@item.AvailableQuantity</td>
-                                        <td class="text-center">
-                                            @if (item.IsActive == true)
-                                            {
-                                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1">Hiển thị</span>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-3 py-1">Ẩn</span>
-                                            }
-                                        </td>
-                                        <td class="text-center">
-                                            <form method="post" asp-area="Admin" asp-controller="Book" asp-action="Delete" asp-route-id="@item.BookID" 
-                                                  onsubmit="return confirm('Bạn có chắc chắn muốn xóa cuốn sách [@item.Code]?');" style="display:inline-block;">
-                                                <button type="submit" class="btn btn-outline-danger btn-sm rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" title="Xóa sách">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            </form>
-                                        </td>
+                                        <th class="text-center" style="width: 100px;">Mã sách</th>
+                                        <th class="text-center" style="width: 70px;">Ảnh bìa</th>
+                                        <th>Tên sách &amp; Thể loại</th>
+                                        <th class="text-center">Tổng kho</th>
+                                        <th class="text-center">Khả dụng</th>
+                                        <th class="text-center">Trạng thái</th>
+                                        <th class="text-center" style="width: 140px;">Thao tác</th>
                                     </tr>
-                                }
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    @if (Model == null || Model.Count() == 0)
+                                    {
+                                        <tr>
+                                            <td colspan="7" class="text-center py-5 text-muted">
+                                                <i class="bi bi-inbox fs-2 d-block mb-1 opacity-50"></i>
+                                                Chưa có cuốn sách nào phù hợp.
+                                            </td>
+                                        </tr>
+                                    }
+                                    else
+                                    {
+                                        @foreach (var item in Model)
+                                        {
+                                            string catName = (categories != null && categories.ContainsKey(item.CategoryID)) ? categories[item.CategoryID] : "Khác";
+                                            string authName = (authors != null && authors.ContainsKey(item.AuthorID)) ? authors[item.AuthorID] : "Khác";
+
+                                            <tr class="@(item.IsActive != true ? "table-light opacity-75" : "")">
+                                                <!-- Mã sách -->
+                                                <td class="text-center">
+                                                    <span class="badge" style="background: #eef2ff; color: #4338ca; font-weight: 700; font-size: 12.5px; padding: 6px 10px; border-radius: 6px;">
+                                                        @item.Code
+                                                    </span>
+                                                </td>
+
+                                                <!-- Ảnh bìa -->
+                                                <td class="text-center">
+                                                    <img src="@(item.Images != null && item.Images.StartsWith("/") ? item.Images : "/" + item.Images)" 
+                                                         alt="@item.Title" style="width: 44px; height: 60px; object-fit: cover; border-radius: 6px;" 
+                                                         onerror="this.src='/images/books/book-placeholder.svg';" />
+                                                </td>
+
+                                                <!-- Tên sách & tác giả -->
+                                                <td>
+                                                    <strong class="text-dark d-block">@item.Title</strong>
+                                                    <div class="small text-muted d-flex gap-2 align-items-center">
+                                                        <span><i class="bi bi-person me-1"></i>@authName</span>
+                                                        <span>•</span>
+                                                        <span class="badge bg-light text-secondary border">@catName</span>
+                                                    </div>
+                                                </td>
+
+                                                <!-- Tổng kho -->
+                                                <td class="text-center fw-semibold">@item.Quantity</td>
+
+                                                <!-- Khả dụng trên kệ -->
+                                                <td class="text-center">
+                                                    @if (item.AvailableQuantity > 0)
+                                                    {
+                                                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1">
+                                                            Còn @item.AvailableQuantity cuốn
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3 py-1">
+                                                            Hết sách
+                                                        </span>
+                                                    }
+                                                </td>
+
+                                                <!-- Trạng thái -->
+                                                <td class="text-center">
+                                                    @if (item.IsActive == true)
+                                                    {
+                                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1">
+                                                            Lưu hành
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-3 py-1" title="Sách đã được xóa mềm hoặc ngừng lưu hành">
+                                                            Ngừng lưu hành
+                                                        </span>
+                                                    }
+                                                </td>
+
+                                                <!-- Thao tác -->
+                                                <td class="text-center">
+                                                    <div class="d-flex gap-1 justify-content-center">
+                                                        <!-- Nút Sửa -->
+                                                        <a asp-area="Admin" asp-controller="Book" asp-action="Edit" asp-route-id="@item.BookID" 
+                                                           class="btn btn-outline-primary btn-sm rounded-circle d-inline-flex align-items-center justify-content-center" 
+                                                           style="width: 32px; height: 32px;" title="Chỉnh sửa thông tin &amp; tổng kho">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </a>
+
+                                                        <!-- Nút Bật/tắt lưu hành (Soft Delete Toggle) -->
+                                                        <form method="post" asp-area="Admin" asp-controller="Book" asp-action="ToggleActive" asp-route-id="@item.BookID" class="d-inline">
+                                                            <button type="submit" class="btn btn-outline-secondary btn-sm rounded-circle d-inline-flex align-items-center justify-content-center" 
+                                                                    style="width: 32px; height: 32px;" 
+                                                                    title="@(item.IsActive == true ? "Chuyển sang Xóa mềm (Ngừng lưu hành)" : "Phục hồi hiển thị lưu hành")">
+                                                                <i class="bi @(item.IsActive == true ? "bi-eye-slash" : "bi-eye")"></i>
+                                                            </button>
+                                                        </form>
+
+                                                        <!-- Nút Xóa có kiểm tra toàn vẹn -->
+                                                        <form method="post" asp-area="Admin" asp-controller="Book" asp-action="Delete" asp-route-id="@item.BookID" 
+                                                              onsubmit="return confirm('Xác nhận xóa cuốn sách [@item.Code]? Nếu sách đã có lịch sử mượn trả, hệ thống sẽ tự động chuyển sang chế độ Xóa mềm để bảo toàn dữ liệu.');" 
+                                                              class="d-inline">
+                                                            <button type="submit" class="btn btn-outline-danger btn-sm rounded-circle d-inline-flex align-items-center justify-content-center" 
+                                                                    style="width: 32px; height: 32px;" title="Xóa sách (Áp dụng Soft Delete nếu có dữ liệu liên kết)">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
 
                         <!-- PHÂN TRANG -->
                         <div class="d-flex justify-content-center mt-4">

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -6,6 +7,7 @@ using LibraryManagement.Models;
 namespace LibraryManagement.Areas.Admin.Controllers
 {
     [Area("Admin")]
+    [Authorize(Roles = "Admin,Librarian")] // Phân quyền cấp CONTROLLER: Admin và Thủ thư
     public class BorrowController : AdminBaseController
     {
         private readonly DataContext _context;
@@ -15,7 +17,9 @@ namespace LibraryManagement.Areas.Admin.Controllers
             _context = context;
         }
 
-        // 1. DANH SÁCH PHIẾU MƯỢN & TÌM KIẾM THEO MÃ
+        // 1. DANH SÁCH PHIẾU MƯỢN & TÌM KIẾM
+        [HttpGet]
+        [Authorize(Roles = "Admin,Librarian")]
         public IActionResult Index(string? keyword)
         {
             var query = _context.BorrowTickets.AsQueryable();
@@ -52,33 +56,53 @@ namespace LibraryManagement.Areas.Admin.Controllers
             }
 
             var listTickets = query.OrderByDescending(t => t.TicketID).ToList();
+            var ticketIds = listTickets.Select(t => t.TicketID).ToList();
 
-            // Lấy thông tin người dùng
+            // Lấy thông tin độc giả
             ViewBag.Users = _context.Users.ToDictionary(u => u.UserID, u => u);
 
-            // Lấy thông tin sách cho mỗi phiếu mượn
-            var ticketIds = listTickets.Select(t => t.TicketID).ToList();
-            var details = _context.BorrowDetails.Where(d => ticketIds.Contains(d.TicketID)).ToList();
-            var bookIds = details.Select(d => d.BookID).Distinct().ToList();
-            var books = _context.Books.Where(b => bookIds.Contains(b.BookID)).ToDictionary(b => b.BookID, b => b);
+            // Lấy toàn bộ danh sách chi tiết sách của các phiếu mượn
+            var allDetails = _context.BorrowDetails.Where(d => ticketIds.Contains(d.TicketID)).ToList();
+            ViewBag.TicketDetails = allDetails.GroupBy(d => d.TicketID).ToDictionary(g => g.Key, g => g.ToList());
 
-            var ticketBooks = new Dictionary<int, tblBook>();
-            foreach (var detail in details)
-            {
-                if (books.ContainsKey(detail.BookID) && !ticketBooks.ContainsKey(detail.TicketID))
-                {
-                    ticketBooks[detail.TicketID] = books[detail.BookID];
-                }
-            }
-            ViewBag.TicketBooks = ticketBooks;
+            // Lấy thông tin sách
+            var bookIds = allDetails.Select(d => d.BookID).Distinct().ToList();
+            ViewBag.Books = _context.Books.Where(b => bookIds.Contains(b.BookID)).ToDictionary(b => b.BookID, b => b);
 
             return View(listTickets);
         }
 
-        // 2. LẬP PHIẾU MƯỢN (GET) - HIỂN THỊ MÃ ĐỘC GIẢ & MÃ SÁCH
+        // 2. XEM CHI TIẾT PHIẾU MƯỢN & DANH SÁCH SÁCH CHI TIẾT
+        [HttpGet]
+        [Authorize(Roles = "Admin,Librarian")]
+        public IActionResult Detail(int id)
+        {
+            var ticket = _context.BorrowTickets.Find(id);
+            if (ticket == null)
+            {
+                TempData["Error"] = "Không tìm thấy phiếu mượn yêu cầu!";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var user = _context.Users.Find(ticket.UserID);
+            ViewBag.User = user;
+
+            var details = _context.BorrowDetails.Where(d => d.TicketID == id).ToList();
+            var bookIds = details.Select(d => d.BookID).Distinct().ToList();
+            var books = _context.Books.Where(b => bookIds.Contains(b.BookID)).ToDictionary(b => b.BookID, b => b);
+
+            ViewBag.Details = details;
+            ViewBag.Books = books;
+
+            return View(ticket);
+        }
+
+        // 3. LẬP PHIẾU MƯỢN MỚI (GET) - CHO PHÉP CHỌN NHIỀU ĐẦU SÁCH
+        [HttpGet]
+        [Authorize(Roles = "Admin,Librarian")]
         public IActionResult Create()
         {
-            // Danh sách độc giả hiển thị kèm Mã độc giả: [DG0001] Nguyễn Văn An
+            // Danh sách độc giả
             var users = _context.Users.Where(u => u.IsActive == true).ToList()
                 .Select(u => new {
                     UserID = u.UserID,
@@ -86,13 +110,12 @@ namespace LibraryManagement.Areas.Admin.Controllers
                 }).ToList();
             ViewBag.UserList = new SelectList(users, "UserID", "DisplayText");
 
-            // Danh sách sách CÒN TRÊN KỆ hiển thị kèm Mã sách: [MS0001] Clean Code
-            var books = _context.Books.Where(b => b.IsActive == true && b.AvailableQuantity > 0).ToList()
-                .Select(b => new {
-                    BookID = b.BookID,
-                    DisplayText = $"[{b.Code}] {b.Title} (Còn: {b.AvailableQuantity} bản)"
-                }).ToList();
-            ViewBag.BookList = new SelectList(books, "BookID", "DisplayText");
+            // Danh sách sách CÒN KHẢ DỤNG TRÊN KỆ
+            var availableBooks = _context.Books
+                .Where(b => b.IsActive == true && b.AvailableQuantity > 0)
+                .OrderBy(b => b.BookID)
+                .ToList();
+            ViewBag.AvailableBooks = availableBooks;
 
             // Mã phiếu mượn dự kiến
             int nextId = (_context.BorrowTickets.Max(t => (int?)t.TicketID) ?? 0) + 1;
@@ -101,95 +124,447 @@ namespace LibraryManagement.Areas.Admin.Controllers
             return View();
         }
 
-        // 2. LẬP PHIẾU MƯỢN (POST) - TỰ ĐỘNG SINH MÃ PHIẾU MƯỢN & TRỪ SÁCH KHO
+        // 3. LẬP PHIẾU MƯỢN MỚI (POST) - CẬP NHẬT TỒN KHO NGUYÊN TỬ + TRANSACTION
         [HttpPost]
-        public IActionResult Create(tblBorrowTicket ticket, long bookId)
+        [Authorize(Roles = "Admin,Librarian")]
+        public IActionResult Create(tblBorrowTicket ticket, List<long>? selectedBookIds, long? bookId)
         {
-            var book = _context.Books.Find(bookId);
-            if (book == null || book.AvailableQuantity <= 0)
+            // Hỗ trợ cả danh sách nhiều sách hoặc 1 cuốn đơn lẻ
+            var bookIds = new List<long>();
+            if (selectedBookIds != null && selectedBookIds.Count > 0)
             {
-                ModelState.AddModelError("", "Sách này hiện đã hết trên kệ, không thể mượn!");
+                bookIds.AddRange(selectedBookIds);
+            }
+            else if (bookId.HasValue && bookId.Value > 0)
+            {
+                bookIds.Add(bookId.Value);
+            }
+
+            // Loại bỏ các ID trùng lặp nếu có
+            bookIds = bookIds.Distinct().ToList();
+
+            if (ticket.UserID <= 0)
+            {
+                ModelState.AddModelError("UserID", "Vui lòng chọn độc giả mượn sách!");
+            }
+            else
+            {
+                var borrower = _context.Users.Find(ticket.UserID);
+                if (borrower == null || borrower.IsActive != true)
+                {
+                    ModelState.AddModelError("UserID", "Tài khoản độc giả không tồn tại hoặc hiện đang bị khóa!");
+                }
+            }
+
+            if (bookIds.Count == 0)
+            {
+                ModelState.AddModelError("", "Vui lòng chọn ít nhất một cuốn sách để lập phiếu mượn!");
+            }
+            else
+            {
+                foreach (var bId in bookIds)
+                {
+                    var bk = _context.Books.Find(bId);
+                    if (bk == null || bk.IsActive != true)
+                    {
+                        ModelState.AddModelError("", $"Cuốn sách ID #{bId} không tồn tại hoặc đã ngừng lưu hành (xóa mềm)!");
+                    }
+                }
             }
 
             if (ModelState.IsValid)
             {
-                ticket.BorrowDate = DateTime.Now;
-                ticket.Status = "Đang mượn";
-
-                _context.BorrowTickets.Add(ticket);
-                _context.SaveChanges();
-
-                // Tự động sinh mã phiếu mượn nếu chưa nhập
-                if (string.IsNullOrWhiteSpace(ticket.TicketCode))
+                // SỬ DỤNG DATABASE TRANSACTION BẢO ĐẢM TÍNH TOÀN VẸN ACID
+                using var transaction = _context.Database.BeginTransaction();
+                try
                 {
-                    ticket.TicketCode = $"PM{ticket.TicketID:D4}";
-                    _context.BorrowTickets.Update(ticket);
+                    ticket.BorrowDate = DateTime.Now;
+                    ticket.Status = "Đang mượn";
+
+                    if (string.IsNullOrWhiteSpace(ticket.TicketCode))
+                    {
+                        int nextId = (_context.BorrowTickets.Max(t => (int?)t.TicketID) ?? 0) + 1;
+                        ticket.TicketCode = $"PM{nextId:D4}";
+                    }
+
+                    _context.BorrowTickets.Add(ticket);
+                    _context.SaveChanges();
+
+                    // CẬP NHẬT TỒN KHO NGUYÊN TỬ VÀ THÊM CHI TIẾT SÁCH
+                    foreach (var bId in bookIds)
+                    {
+                        var bookInfo = _context.Books.Find(bId);
+                        string bookTitle = bookInfo != null ? $"[{bookInfo.Code}] {bookInfo.Title}" : $"Sách #{bId}";
+
+                        // CÂU LỆNH NGUYÊN TỬ: Kiểm tra và trừ kho trong 1 thao tác SQL duy nhất
+                        // WHERE [BookID] = @bId AND [AvailableQuantity] > 0
+                        int rowsAffected = _context.Database.ExecuteSqlInterpolated(
+                            $"UPDATE [dbo].[tblBook] SET [AvailableQuantity] = [AvailableQuantity] - 1 WHERE [BookID] = {bId} AND [AvailableQuantity] > 0"
+                        );
+
+                        if (rowsAffected == 0)
+                        {
+                            // Nếu rowsAffected = 0 tức là sách đã hết ngay lúc thao tác -> Rollback!
+                            throw new InvalidOperationException($"Cuốn sách '{bookTitle}' hiện không còn bản khả dụng trên kệ!");
+                        }
+
+                        // Lưu chi tiết sách mượn
+                        var detail = new tblBorrowDetail
+                        {
+                            TicketID = ticket.TicketID,
+                            BookID = bId,
+                            FineAmount = 0,
+                            IsReturned = false,
+                            ReturnDate = null,
+                            Note = null
+                        };
+                        _context.BorrowDetails.Add(detail);
+                    }
+
+                    _context.SaveChanges();
+                    transaction.Commit();
+
+                    TempData["Success"] = $"Lập thành công phiếu mượn [{ticket.Code}] gồm {bookIds.Count} cuốn sách với giao dịch nguyên tử an toàn!";
+                    return RedirectToAction(nameof(Detail), new { id = ticket.TicketID });
                 }
-
-                // Lưu chi tiết sách mượn
-                var detail = new tblBorrowDetail
+                catch (Exception ex)
                 {
-                    TicketID = ticket.TicketID,
-                    BookID = bookId,
-                    FineAmount = 0
-                };
-                _context.BorrowDetails.Add(detail);
-
-                // TỰ ĐỘNG TRỪ SỐ LƯỢNG KHẢ DỤNG CỦA SÁCH TRONG KHO
-                book.AvailableQuantity = book.AvailableQuantity - 1;
-                _context.Books.Update(book);
-
-                _context.SaveChanges();
-                TempData["Success"] = $"Lập phiếu mượn [{ticket.Code}] thành công cho độc giả!";
-                return RedirectToAction("Index");
+                    transaction.Rollback();
+                    TempData["Error"] = $"Không thể lập phiếu mượn: {ex.Message}";
+                }
             }
 
+            // Nạp lại dữ liệu nếu lỗi
             var users = _context.Users.Where(u => u.IsActive == true).ToList()
                 .Select(u => new {
                     UserID = u.UserID,
                     DisplayText = $"[{u.Code}] {u.FullName ?? u.UserName}"
                 }).ToList();
             ViewBag.UserList = new SelectList(users, "UserID", "DisplayText");
-
-            var books = _context.Books.Where(b => b.IsActive == true && b.AvailableQuantity > 0).ToList()
-                .Select(b => new {
-                    BookID = b.BookID,
-                    DisplayText = $"[{b.Code}] {b.Title} (Còn: {b.AvailableQuantity} bản)"
-                }).ToList();
-            ViewBag.BookList = new SelectList(books, "BookID", "DisplayText");
+            ViewBag.AvailableBooks = _context.Books.Where(b => b.IsActive == true && b.AvailableQuantity > 0).OrderBy(b => b.BookID).ToList();
 
             return View(ticket);
         }
 
-        // 3. XÁC NHẬN TRẢ SÁCH (POST) - TỰ ĐỘNG SINH MÃ TRẢ SÁCH & CỘNG LẠI KHO
+        // 4. HOÀN KHO TỪNG BẢN SÁCH RIÊNG LẺ - BẢO ĐẢM HOÀN KHO ĐÚNG 1 LẦN
         [HttpPost]
-        public IActionResult ReturnBook(int id)
+        [Authorize(Roles = "Admin,Librarian")]
+        public IActionResult ReturnBookItem(int detailId, string? returnNote)
+        {
+            var detail = _context.BorrowDetails.Find(detailId);
+            if (detail == null)
+            {
+                TempData["Error"] = "Không tìm thấy chi tiết sách cần hoàn kho!";
+                return RedirectToAction(nameof(Index));
+            }
+
+            int ticketId = detail.TicketID;
+            long bookId = detail.BookID;
+
+            using var transaction = _context.Database.BeginTransaction();
+            try
+            {
+                DateTime now = DateTime.Now;
+
+                // THAO TÁC NGUYÊN TỬ CÓ ĐIỀU KIỆN [IsReturned] = 0
+                // Chỉ cập nhật nếu cuốn sách này CHƯA TỪNG được hoàn kho
+                int updated = _context.Database.ExecuteSqlInterpolated(
+                    $"UPDATE [dbo].[tblBorrowDetail] SET [IsReturned] = 1, [ReturnDate] = {now}, [Note] = {returnNote} WHERE [DetailID] = {detailId} AND [IsReturned] = 0"
+                );
+
+                if (updated == 0)
+                {
+                    // Đã được hoàn kho trước đó -> Rollback, không hoàn kho lần 2 (Idempotency)
+                    transaction.Rollback();
+                    TempData["Error"] = "Bản sách này đã được hoàn kho trước đó! Không thể hoàn kho lặp lại.";
+                    return RedirectToAction(nameof(Detail), new { id = ticketId });
+                }
+
+                // CẬP NHẬT TĂNG TỒN KHO NGUYÊN TỬ (Chỉ chạy khi updated == 1)
+                _context.Database.ExecuteSqlInterpolated(
+                    $"UPDATE [dbo].[tblBook] SET [AvailableQuantity] = [AvailableQuantity] + 1 WHERE [BookID] = {bookId}"
+                );
+
+                // Kiểm tra trạng thái toàn bộ phiếu mượn
+                var allDetails = _context.BorrowDetails.Where(d => d.TicketID == ticketId).ToList();
+                // Đồng bộ trạng thái cuốn vừa trả
+                detail.IsReturned = true;
+
+                var ticket = _context.BorrowTickets.Find(ticketId);
+                if (ticket != null)
+                {
+                    bool allReturned = allDetails.All(d => d.DetailID == detailId || d.IsReturned);
+                    if (allReturned)
+                    {
+                        ticket.Status = "Đã trả";
+                        ticket.ReturnDate = now;
+                        if (string.IsNullOrWhiteSpace(ticket.ReturnCode))
+                        {
+                            ticket.ReturnCode = $"PT{ticket.TicketID:D4}";
+                        }
+                    }
+                    else
+                    {
+                        ticket.Status = "Trả một phần";
+                    }
+                    _context.BorrowTickets.Update(ticket);
+                    _context.SaveChanges();
+                }
+
+                transaction.Commit();
+                var book = _context.Books.Find(bookId);
+                TempData["Success"] = $"Đã hoàn kho thành công cuốn sách [{book?.Code ?? "MS"}] và tăng lại 1 tồn kho!";
+            }
+            catch (Exception ex)
+            {
+                transaction.Rollback();
+                TempData["Error"] = $"Lỗi khi hoàn kho sách: {ex.Message}";
+            }
+
+            return RedirectToAction(nameof(Detail), new { id = ticketId });
+        }
+
+        // 5. HOÀN KHO TOÀN BỘ CÁC BẢN SÁCH CÒN LẠI TRONG PHIẾU MƯỢN
+        [HttpPost]
+        [Authorize(Roles = "Admin,Librarian")]
+        public IActionResult ReturnTicket(int id, string? returnNote)
         {
             var ticket = _context.BorrowTickets.Find(id);
-            if (ticket != null && ticket.Status == "Đang mượn")
+            if (ticket == null)
             {
-                ticket.Status = "Đã trả";
-                ticket.ReturnDate = DateTime.Now;
-                // Tự động sinh Mã trả sách: PT0001
-                ticket.ReturnCode = $"PT{ticket.TicketID:D4}";
+                TempData["Error"] = "Không tìm thấy phiếu mượn yêu cầu!";
+                return RedirectToAction(nameof(Index));
+            }
 
-                // Tìm sách trong chi tiết mượn để cộng lại vào kho
-                var detail = _context.BorrowDetails.FirstOrDefault(d => d.TicketID == id);
-                if (detail != null)
+            using var transaction = _context.Database.BeginTransaction();
+            try
+            {
+                DateTime now = DateTime.Now;
+                var unreturnedDetails = _context.BorrowDetails.Where(d => d.TicketID == id && !d.IsReturned).ToList();
+
+                if (unreturnedDetails.Count == 0)
                 {
-                    var book = _context.Books.Find(detail.BookID);
-                    if (book != null)
+                    TempData["Error"] = "Tất cả các bản sách trong phiếu này đã được hoàn kho trước đó!";
+                    return RedirectToAction(nameof(Detail), new { id });
+                }
+
+                int countReturned = 0;
+                foreach (var d in unreturnedDetails)
+                {
+                    // CẬP NHẬT NGUYÊN TỬ CÓ ĐIỀU KIỆN: Chỉ cập nhật khi IsReturned = 0
+                    int updated = _context.Database.ExecuteSqlInterpolated(
+                        $"UPDATE [dbo].[tblBorrowDetail] SET [IsReturned] = 1, [ReturnDate] = {now}, [Note] = {returnNote} WHERE [DetailID] = {d.DetailID} AND [IsReturned] = 0"
+                    );
+
+                    if (updated > 0)
                     {
-                        book.AvailableQuantity = book.AvailableQuantity + 1;
-                        _context.Books.Update(book);
+                        // Hoàn kho đúng 1 lần cho từng cuốn
+                        _context.Database.ExecuteSqlInterpolated(
+                            $"UPDATE [dbo].[tblBook] SET [AvailableQuantity] = [AvailableQuantity] + 1 WHERE [BookID] = {d.BookID}"
+                        );
+                        countReturned++;
                     }
                 }
 
+                // Cập nhật trạng thái phiếu mượn sang hoàn tất
+                ticket.Status = "Đã trả";
+                ticket.ReturnDate = now;
+                if (string.IsNullOrWhiteSpace(ticket.ReturnCode))
+                {
+                    ticket.ReturnCode = $"PT{ticket.TicketID:D4}";
+                }
                 _context.BorrowTickets.Update(ticket);
                 _context.SaveChanges();
-                TempData["Success"] = $"Xác nhận trả sách thành công! Đã tạo Mã trả sách: [{ticket.ReturnCode}].";
+
+                transaction.Commit();
+                TempData["Success"] = $"Hoàn kho thành công {countReturned} bản sách! Đã cấp Mã trả sách: [{ticket.ReturnCode}].";
             }
-            return RedirectToAction("Index");
+            catch (Exception ex)
+            {
+                transaction.Rollback();
+                TempData["Error"] = $"Lỗi khi hoàn kho phiếu mượn: {ex.Message}";
+            }
+
+            return RedirectToAction(nameof(Detail), new { id });
         }
-    }
+
+        // 6. ACTION COMPATIBILITY: Hỗ trợ nút trả nhanh từ trang Index
+        [HttpPost]
+        [Authorize(Roles = "Admin,Librarian")]
+        public IActionResult ReturnBook(int id)
+        {
+            return ReturnTicket(id, "Hoàn kho toàn bộ qua nút thao tác nhanh");
+        }
+
+        // ==================== NEW: APPROVAL WORKFLOW ====================
+        // 7. LIST PENDING BORROW & RETURN REQUESTS (Admin/Librarian)
+        [HttpGet]
+        [Authorize(Roles = "Admin,Librarian")]
+        public IActionResult PendingRequests()
+        {
+            var pending = _context.BorrowTickets
+                .Where(t => t.Status == "Pending" || t.Status == "Chờ duyệt trả")
+                .OrderByDescending(t => t.TicketID)
+                .ToList();
+
+            // Load related details and books for display
+            var ticketIds = pending.Select(t => t.TicketID).ToList();
+            var allDetails = _context.BorrowDetails.Where(d => ticketIds.Contains(d.TicketID)).ToList();
+            ViewBag.TicketDetails = allDetails.GroupBy(d => d.TicketID).ToDictionary(g => g.Key, g => g.ToList());
+            var bookIds = allDetails.Select(d => d.BookID).Distinct().ToList();
+            ViewBag.Books = _context.Books.Where(b => bookIds.Contains(b.BookID)).ToDictionary(b => b.BookID, b => b);
+            ViewBag.Users = _context.Users.ToDictionary(u => u.UserID, u => u);
+            return View(pending);
+        }
+
+        // 8. APPROVE BORROW REQUEST
+        [HttpPost]
+        [Authorize(Roles = "Admin,Librarian")]
+        public IActionResult ApproveRequest(int id)
+        {
+            var ticket = _context.BorrowTickets.Find(id);
+            if (ticket == null || ticket.Status != "Pending")
+            {
+                TempData["Error"] = "Phiếu không tồn tại hoặc không ở trạng thái chờ duyệt.";
+                return RedirectToAction(nameof(PendingRequests));
+            }
+
+            var details = _context.BorrowDetails.Where(d => d.TicketID == id).ToList();
+            if (!details.Any())
+            {
+                TempData["Error"] = "Phiếu không có chi tiết sách để duyệt.";
+                return RedirectToAction(nameof(PendingRequests));
+            }
+
+            using var transaction = _context.Database.BeginTransaction();
+            try
+            {
+                // Update ticket info
+                ticket.Status = "Đang mượn";
+                ticket.BorrowDate = DateTime.Now;
+                if (ticket.DueDate <= ticket.BorrowDate)
+                {
+                    ticket.DueDate = DateTime.Now.AddDays(14);
+                }
+                // Ensure TicketCode exists
+                if (string.IsNullOrWhiteSpace(ticket.TicketCode))
+                {
+                    int nextId = (_context.BorrowTickets.Max(t => (int?)t.TicketID) ?? 0) + 1;
+                    ticket.TicketCode = $"PM{nextId:D4}";
+                }
+                _context.BorrowTickets.Update(ticket);
+
+                // Decrement stock for each book atomically
+                foreach (var d in details)
+                {
+                    int rowsAffected = _context.Database.ExecuteSqlInterpolated(
+                        $"UPDATE [dbo].[tblBook] SET [AvailableQuantity] = [AvailableQuantity] - 1 WHERE [BookID] = {d.BookID} AND [AvailableQuantity] > 0");
+                    if (rowsAffected == 0)
+                    {
+                        throw new InvalidOperationException($"Sách ID {d.BookID} không còn tồn kho để duyệt phiếu.");
+                    }
+                }
+
+                _context.SaveChanges();
+                transaction.Commit();
+                TempData["Success"] = $"Đã duyệt phiếu mượn [{ticket.Code}] và giảm tồn kho cho các cuốn sách.";
+            }
+            catch (Exception ex)
+            {
+                transaction.Rollback();
+                TempData["Error"] = $"Lỗi duyệt phiếu: {ex.Message}";
+            }
+            return RedirectToAction(nameof(PendingRequests));
+        }
+
+        // 9. REJECT BORROW REQUEST
+        [HttpPost]
+        [Authorize(Roles = "Admin,Librarian")]
+        public IActionResult RejectRequest(int id, string? rejectReason)
+        {
+            var ticket = _context.BorrowTickets.Find(id);
+            if (ticket == null || ticket.Status != "Pending")
+            {
+                TempData["Error"] = "Phiếu không tồn tại hoặc không ở trạng thái chờ duyệt.";
+                return RedirectToAction(nameof(PendingRequests));
+            }
+            ticket.Status = "Từ chối";
+            ticket.Note = string.IsNullOrWhiteSpace(rejectReason) ? "Thủ thư từ chối yêu cầu mượn" : $"Từ chối: {rejectReason.Trim()}";
+            _context.BorrowTickets.Update(ticket);
+            _context.SaveChanges();
+            TempData["Success"] = $"Đã từ chối yêu cầu mượn sách [{ticket.Code}].";
+            return RedirectToAction(nameof(PendingRequests));
+        }
+
+        // 10. APPROVE RETURN REQUEST (THỦ THƯ XÁC NHẬN NHẬN TRẢ SÁCH VÀ HOÀN KHO NGUYÊN TỬ)
+        [HttpPost]
+        [Authorize(Roles = "Admin,Librarian")]
+        public IActionResult ApproveReturn(int id, string? returnNote)
+        {
+            var ticket = _context.BorrowTickets.Find(id);
+            if (ticket == null)
+            {
+                TempData["Error"] = "Không tìm thấy phiếu mượn tương ứng.";
+                return RedirectToAction(nameof(PendingRequests));
+            }
+
+            using var transaction = _context.Database.BeginTransaction();
+            try
+            {
+                DateTime now = DateTime.Now;
+                var unreturnedDetails = _context.BorrowDetails.Where(d => d.TicketID == id && !d.IsReturned).ToList();
+
+                if (unreturnedDetails.Count == 0)
+                {
+                    TempData["Error"] = "Tất cả các bản sách trong phiếu này đã được hoàn kho trước đó!";
+                    return RedirectToAction(nameof(PendingRequests));
+                }
+
+                int countReturned = 0;
+                foreach (var d in unreturnedDetails)
+                {
+                    // CẬP NHẬT NGUYÊN TỬ CÓ ĐIỀU KIỆN [IsReturned] = 0
+                    int updated = _context.Database.ExecuteSqlInterpolated(
+                        $"UPDATE [dbo].[tblBorrowDetail] SET [IsReturned] = 1, [ReturnDate] = {now}, [Note] = {returnNote} WHERE [DetailID] = {d.DetailID} AND [IsReturned] = 0"
+                    );
+
+                    if (updated > 0)
+                    {
+                        // Hoàn kho đúng 1 lần cho từng cuốn
+                        _context.Database.ExecuteSqlInterpolated(
+                            $"UPDATE [dbo].[tblBook] SET [AvailableQuantity] = [AvailableQuantity] + 1 WHERE [BookID] = {d.BookID}"
+                        );
+                        countReturned++;
+                    }
+                }
+
+                // Cập nhật trạng thái phiếu mượn sang hoàn tất
+                ticket.Status = "Đã trả";
+                ticket.ReturnDate = now;
+                if (string.IsNullOrWhiteSpace(ticket.ReturnCode))
+                {
+                    ticket.ReturnCode = $"PT{ticket.TicketID:D4}";
+                }
+                if (!string.IsNullOrWhiteSpace(returnNote))
+                {
+                    string cleanNote = returnNote.Trim();
+                    ticket.Note = string.IsNullOrWhiteSpace(ticket.Note) ? cleanNote : $"{ticket.Note} | Đã nhận trả: {cleanNote}";
+                }
+                _context.BorrowTickets.Update(ticket);
+                _context.SaveChanges();
+
+                transaction.Commit();
+                TempData["Success"] = $"Xác nhận trả sách thành công! Đã hoàn kho {countReturned} cuốn sách cho phiếu [{ticket.Code}] và cấp Mã trả sách: [{ticket.ReturnCode}].";
+            }
+            catch (Exception ex)
+            {
+                transaction.Rollback();
+                TempData["Error"] = $"Lỗi khi xác nhận hoàn kho: {ex.Message}";
+            }
+
+            return RedirectToAction(nameof(PendingRequests));
+        }
+
+        // ==================== END NEW ====================
+        }
 }

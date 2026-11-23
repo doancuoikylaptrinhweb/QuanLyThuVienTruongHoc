@@ -41,6 +41,28 @@ BEGIN
 END
 GO
 
+-- 4. THÊM CỘT [IsReturned], [ReturnDate], [Note] VÀO BẢNG [tblBorrowDetail] NẾU CHƯA CÓ
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('tblBorrowDetail') AND name = 'IsReturned')
+BEGIN
+    ALTER TABLE [dbo].[tblBorrowDetail] ADD [IsReturned] BIT NOT NULL DEFAULT 0;
+    PRINT N'Đã thêm cột [IsReturned] vào bảng [tblBorrowDetail] thành công!';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('tblBorrowDetail') AND name = 'ReturnDate')
+BEGIN
+    ALTER TABLE [dbo].[tblBorrowDetail] ADD [ReturnDate] DATETIME NULL;
+    PRINT N'Đã thêm cột [ReturnDate] vào bảng [tblBorrowDetail] thành công!';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('tblBorrowDetail') AND name = 'Note')
+BEGIN
+    ALTER TABLE [dbo].[tblBorrowDetail] ADD [Note] NVARCHAR(255) NULL;
+    PRINT N'Đã thêm cột [Note] vào bảng [tblBorrowDetail] thành công!';
+END
+GO
+
 -- =====================================================================
 -- CẬP NHẬT DỮ LIỆU MẪU CHO CÁC BẢNG ĐÃ CÓ DỮ LIỆU
 -- =====================================================================
@@ -76,6 +98,13 @@ WHERE [TicketCode] IS NULL OR [TicketCode] = '';
 UPDATE [dbo].[tblBorrowTicket]
 SET [ReturnCode] = 'PT' + RIGHT('0000' + CAST([TicketID] AS VARCHAR(10)), 4)
 WHERE [Status] = N'Đã trả' AND ([ReturnCode] IS NULL OR [ReturnCode] = '');
+
+-- Đồng bộ trạng thái IsReturned cho các chi tiết sách của phiếu đã trả
+UPDATE d
+SET d.[IsReturned] = 1, d.[ReturnDate] = t.[ReturnDate]
+FROM [dbo].[tblBorrowDetail] d
+INNER JOIN [dbo].[tblBorrowTicket] t ON d.[TicketID] = t.[TicketID]
+WHERE t.[Status] = N'Đã trả';
 
 PRINT N'Đã cập nhật Mã phiếu mượn (TicketCode) và Mã trả sách (ReturnCode)!';
 GO

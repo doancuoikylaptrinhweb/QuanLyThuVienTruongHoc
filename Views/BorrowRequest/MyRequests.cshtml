@@ -1,0 +1,243 @@
+@model List<LibraryManagement.Models.tblBorrowTicket>
+@{
+    ViewData["Title"] = "Phiếu Mượn & Yêu Cầu Của Tôi";
+    var ticketDetails = ViewBag.TicketDetails as Dictionary<int, List<LibraryManagement.Models.tblBorrowDetail>> ?? new Dictionary<int, List<LibraryManagement.Models.tblBorrowDetail>>();
+    var books = ViewBag.Books as Dictionary<long, LibraryManagement.Models.tblBook> ?? new Dictionary<long, LibraryManagement.Models.tblBook>();
+}
+
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb bg-white p-3 rounded-4 shadow-sm border" style="font-size: 13.5px;">
+        <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-primary"><i class="bi bi-house me-1"></i> Trang chủ</a></li>
+        <li class="breadcrumb-item active text-dark fw-semibold" aria-current="page">Phiếu mượn của tôi</li>
+    </ol>
+</nav>
+
+<div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 bg-white">
+    <div class="card-body p-4 p-md-5">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-3 border-bottom gap-2">
+            <div>
+                <h3 class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                    <i class="bi bi-journal-bookmark-fill text-primary"></i> Phiếu Mượn &amp; Lịch Sử Của Tôi
+                </h3>
+                <p class="text-muted small mb-0">Theo dõi toàn bộ yêu cầu mượn trực tuyến, thời hạn trả sách, gửi yêu cầu trả và mã hoàn trả.</p>
+            </div>
+            <div>
+                <a href="/#kho-sach" class="btn btn-primary rounded-pill px-4 py-2 fw-semibold shadow-sm" style="font-size: 14px;">
+                    <i class="bi bi-search me-1"></i> Khám phá kho sách
+                </a>
+            </div>
+        </div>
+
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show rounded-4 border-0 shadow-sm" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show rounded-4 border-0 shadow-sm" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i> @TempData["Success"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        @if (!Model.Any())
+        {
+            <div class="text-center py-5">
+                <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                    <i class="bi bi-journal-x text-muted fs-1"></i>
+                </div>
+                <h5 class="fw-bold text-dark">Bạn chưa có phiếu mượn nào</h5>
+                <p class="text-muted small mb-3">Hãy chọn một cuốn sách từ trang chủ và bấm "Đăng Ký Mượn Sách" để gửi yêu cầu trực tuyến!</p>
+                <a href="/#kho-sach" class="btn btn-outline-primary rounded-pill px-4">Tìm sách ngay</a>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="font-size: 13.5px;">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-center" style="width: 110px;">Mã phiếu</th>
+                            <th>Danh sách sách</th>
+                            <th class="text-center" style="width: 110px;">Ngày gửi</th>
+                            <th class="text-center" style="width: 110px;">Hạn trả</th>
+                            <th class="text-center" style="width: 140px;">Trạng thái</th>
+                            <th class="text-center" style="width: 110px;">Mã trả sách</th>
+                            <th>Ghi chú / Phản hồi</th>
+                            <th class="text-center" style="width: 150px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var ticket in Model)
+                    {
+                        var details = ticketDetails.ContainsKey(ticket.TicketID) ? ticketDetails[ticket.TicketID] : new List<LibraryManagement.Models.tblBorrowDetail>();
+                        bool canReturn = ticket.Status == "Đang mượn" || ticket.Status == "Trả một phần" || ticket.Status == "Quá hạn";
+                        bool isPendingReturn = ticket.Status == "Chờ duyệt trả";
+                        bool isPendingBorrow = ticket.Status == "Pending";
+                        bool isOverdue = ticket.Status != "Đã trả" && ticket.Status != "Từ chối" && ticket.DueDate != default && DateTime.Now.Date > ticket.DueDate.Date;
+
+                        string badgeClass = ticket.Status switch
+                        {
+                            "Pending" => "bg-warning-subtle text-warning-emphasis border border-warning-subtle",
+                            "Đang mượn" => "bg-primary-subtle text-primary border border-primary-subtle",
+                            "Chờ duyệt trả" => "bg-info-subtle text-info border border-info-subtle",
+                            "Đã trả" => "bg-success-subtle text-success border border-success-subtle",
+                            "Trả một phần" => "bg-info-subtle text-info border border-info-subtle",
+                            "Từ chối" => "bg-danger-subtle text-danger border border-danger-subtle",
+                            "Quá hạn" => "bg-danger-subtle text-danger border border-danger-subtle",
+                            _ => "bg-secondary-subtle text-secondary border"
+                        };
+                        string statusText = ticket.Status switch
+                        {
+                            "Pending" => "Chờ duyệt mượn",
+                            "Chờ duyệt trả" => "Chờ duyệt trả",
+                            _ => ticket.Status ?? "---"
+                        };
+
+                        <tr>
+                            <td class="text-center">
+                                <span class="badge" style="background: #eef2ff; color: #4338ca; font-weight: 700; font-size: 13px; padding: 6px 10px; border-radius: 8px;">
+                                    @ticket.Code
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex flex-column gap-1">
+                                @foreach (var d in details)
+                                {
+                                    var book = books.ContainsKey(d.BookID) ? books[d.BookID] : null;
+                                    string returnStatus = d.IsReturned ? "Đã trả" : (ticket.Status == "Pending" ? "Chờ duyệt" : (ticket.Status == "Chờ duyệt trả" ? "Chờ nhận trả" : "Đang mượn"));
+                                    string returnBadgeClass = d.IsReturned ? "bg-success text-white" : (ticket.Status == "Pending" ? "bg-warning text-dark" : (ticket.Status == "Chờ duyệt trả" ? "bg-info text-dark" : "bg-primary text-white"));
+
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-light text-primary border border-primary-subtle small fw-semibold">
+                                            @(book?.Code ?? $"MS{d.BookID:D4}")
+                                        </span>
+                                        <strong class="text-dark small">@(book?.Title ?? $"Sách #{d.BookID}")</strong>
+                                        <span class="badge @returnBadgeClass" style="font-size: 10px;">@returnStatus</span>
+                                    </div>
+                                }
+                                </div>
+                            </td>
+                            <td class="text-center text-muted">@ticket.BorrowDate.ToString("dd/MM/yyyy")</td>
+                            <td class="text-center">
+                                @if (isOverdue)
+                                {
+                                    <span class="text-danger fw-bold"><i class="bi bi-exclamation-circle me-1"></i>@ticket.DueDate.ToString("dd/MM/yyyy")</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">@(ticket.DueDate != default ? ticket.DueDate.ToString("dd/MM/yyyy") : "---")</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <span class="badge @badgeClass rounded-pill px-3 py-1 fw-semibold">@statusText</span>
+                            </td>
+                            <td class="text-center">
+                                @if (!string.IsNullOrEmpty(ticket.ReturnCode))
+                                {
+                                    <span class="badge" style="background: #ecfdf5; color: #059669; font-weight: 700; font-size: 12.5px;">@ticket.ReturnCode</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">---</span>
+                                }
+                            </td>
+                            <td>
+                                <small class="text-secondary">@(string.IsNullOrWhiteSpace(ticket.Note) ? "---" : ticket.Note)</small>
+                            </td>
+                            <td class="text-center">
+                                @if (canReturn)
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3 fw-semibold shadow-sm d-flex align-items-center gap-1 mx-auto"
+                                            data-bs-toggle="modal" data-bs-target="#returnModal-@ticket.TicketID">
+                                        <i class="bi bi-box-arrow-in-left"></i> Trả sách
+                                    </button>
+
+                                    <!-- MODAL XÁC NHẬN YÊU CẦU TRẢ SÁCH (NGƯỜI DÙNG) -->
+                                    <div class="modal fade" id="returnModal-@ticket.TicketID" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden text-start">
+                                                <div class="modal-header bg-success text-white py-3">
+                                                    <h5 class="modal-title fw-bold">
+                                                        <i class="bi bi-box-arrow-in-left me-2"></i> Xác Nhận Trả Sách
+                                                    </h5>
+                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <form method="post" asp-controller="BorrowRequest" asp-action="RequestReturn">
+                                                    <input type="hidden" name="id" value="@ticket.TicketID" />
+                                                    <div class="modal-body p-4">
+                                                        <p class="text-secondary small mb-3">
+                                                            Bạn đang gửi yêu cầu hoàn trả sách cho phiếu mượn <strong>@ticket.Code</strong>:
+                                                        </p>
+
+                                                        <div class="p-3 bg-light rounded-4 border mb-3">
+                                                            <div class="text-muted small mb-2 fw-semibold">Danh sách sách hoàn trả:</div>
+                                                            <ul class="mb-0 ps-3">
+                                                            @foreach (var d in details.Where(x => !x.IsReturned))
+                                                            {
+                                                                var bk = books.ContainsKey(d.BookID) ? books[d.BookID] : null;
+                                                                <li class="small text-dark">
+                                                                    <strong>[@(bk?.Code ?? "MS")]</strong> @(bk?.Title ?? "Sách #" + d.BookID)
+                                                                </li>
+                                                            }
+                                                            </ul>
+                                                        </div>
+
+                                                        <div class="mb-3">
+                                                            <label class="form-label fw-semibold small text-dark">Ghi chú khi trả sách (tùy chọn):</label>
+                                                            <input type="text" name="returnNote" class="form-control" placeholder="Ví dụ: Sách còn nguyên vẹn, gửi trả tại quầy..." />
+                                                        </div>
+
+                                                        <div class="alert alert-info py-2 px-3 small rounded-3 mb-0 d-flex gap-2">
+                                                            <i class="bi bi-info-circle-fill text-info fs-5 flex-shrink-0"></i>
+                                                            <div style="font-size: 12.5px;">
+                                                                Sau khi ấn <strong>Xác Nhận Trả Sách</strong>, phiếu sẽ chuyển sang trạng thái <strong>Chờ duyệt trả</strong>. Vui lòng mang sách đến quầy để Thủ thư kiểm tra tình trạng sách và hoàn tất nhận trả.
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer border-0 bg-light p-3">
+                                                        <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Hủy bỏ</button>
+                                                        <button type="submit" class="btn btn-success rounded-pill px-4 fw-semibold shadow-sm">
+                                                            <i class="bi bi-check-lg me-1"></i> Xác Nhận Trả Sách
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                                else if (isPendingReturn)
+                                {
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-3 py-1">
+                                        <i class="bi bi-hourglass-split me-1"></i> Chờ thủ thư nhận
+                                    </span>
+                                }
+                                else if (isPendingBorrow)
+                                {
+                                    <span class="text-muted small">
+                                        <i class="bi bi-clock me-1"></i> Đang chờ duyệt
+                                    </span>
+                                }
+                                else if (ticket.Status == "Đã trả")
+                                {
+                                    <span class="text-success small fw-semibold">
+                                        <i class="bi bi-check-all"></i> Đã hoàn tất
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">---</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

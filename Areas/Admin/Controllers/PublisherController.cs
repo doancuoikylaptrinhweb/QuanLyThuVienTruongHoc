@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using LibraryManagement.Models;
 
 namespace LibraryManagement.Areas.Admin.Controllers
 {
     [Area("Admin")]
+    [Authorize(Roles = "Admin,Librarian")] // Phân quyền cấp CONTROLLER
     public class PublisherController : AdminBaseController
     {
         private readonly DataContext _context;
@@ -107,7 +109,9 @@ namespace LibraryManagement.Areas.Admin.Controllers
             return View(publisher);
         }
 
-        // 4. XÓA NXB (DELETE - GET)
+        // 4. XÓA NXB (DELETE - GET) - CHỈ ADMIN TỐI CAO
+        [HttpGet]
+        [Authorize(Roles = "Admin")] // Phân quyền cấp ENDPOINT
         public IActionResult Delete(int? id)
         {
             if (id == null || id == 0) return NotFound();
@@ -119,9 +123,10 @@ namespace LibraryManagement.Areas.Admin.Controllers
             return View(publisher);
         }
 
-        // 4. XÓA NXB (DELETE - POST)
+        // 4. XÓA NXB (DELETE - POST) - CHỈ ADMIN TỐI CAO
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")] // Phân quyền cấp ENDPOINT
         public IActionResult DeleteConfirmed(int id)
         {
             var publisher = _context.Publishers.Find(id);
@@ -130,14 +135,33 @@ namespace LibraryManagement.Areas.Admin.Controllers
             int bookCount = _context.Books.Count(b => b.PublisherID == id);
             if (bookCount > 0)
             {
-                TempData["Error"] = $"Không thể xóa Nhà xuất bản [{publisher.PublisherName}] vì đang có {bookCount} đầu sách liên kết!";
+                // Áp dụng SOFT DELETE để bảo toàn khóa ngoại của các đầu sách
+                publisher.IsActive = false;
+                _context.SaveChanges();
+                TempData["Success"] = $"Nhà xuất bản [{publisher.PublisherName}] đang có {bookCount} đầu sách liên kết. Để bảo toàn toàn vẹn dữ liệu, hệ thống đã chuyển sang chế độ XÓA MỀM (Ẩn NXB)!";
                 return RedirectToAction(nameof(Index));
             }
 
             _context.Publishers.Remove(publisher);
             _context.SaveChanges();
 
-            TempData["Success"] = $"Đã xóa Nhà xuất bản [{publisher.PublisherName}] thành công!";
+            TempData["Success"] = $"Đã xóa vĩnh viễn Nhà xuất bản [{publisher.PublisherName}] thành công!";
+            return RedirectToAction(nameof(Index));
+        }
+
+        // 5. KHÓA / KÍCH HOẠT NHÀ XUẤT BẢN
+        [HttpPost]
+        [Authorize(Roles = "Admin,Librarian")]
+        public IActionResult ToggleActive(int id)
+        {
+            var publisher = _context.Publishers.Find(id);
+            if (publisher == null) return NotFound();
+
+            publisher.IsActive = !(publisher.IsActive ?? false);
+            _context.SaveChanges();
+
+            string status = (publisher.IsActive == true) ? "Hiển thị" : "Ẩn";
+            TempData["Success"] = $"Đã chuyển trạng thái Nhà xuất bản [{publisher.PublisherName}] sang: {status}!";
             return RedirectToAction(nameof(Index));
         }
     }

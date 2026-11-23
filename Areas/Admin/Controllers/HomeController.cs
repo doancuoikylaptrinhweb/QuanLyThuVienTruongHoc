@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using LibraryManagement.Models;
 using LibraryManagement.Utilities;
@@ -5,6 +8,7 @@ using LibraryManagement.Utilities;
 namespace LibraryManagement.Areas.Admin.Controllers
 {
     [Area("Admin")]
+    [Authorize(Roles = "Admin,Librarian")] // Phân quyền cấp CONTROLLER
     public class HomeController : AdminBaseController
     {
         private readonly DataContext _context;
@@ -14,39 +18,15 @@ namespace LibraryManagement.Areas.Admin.Controllers
             _context = context;
         }
 
+        // BẢNG ĐIỀU KHIỂN QUẢN TRỊ VIÊN: DỮ LIỆU 100% TRUY VẤN THỰC TẾ TỪ CSDL
         public IActionResult Index()
         {
-
-            // 2. Thống kê số liệu (Mục 10 đồ án - Trực quan hóa Visual Blue)
-            int bookCount = 12;
-            int copyCount = 127;
-            int borrowingCount = 1;
-            int overdueCount = 1;
-            int pendingCount = 0;
-
-            try
-            {
-                int dbBooks = _context.Books.Count();
-                if (dbBooks > 0)
-                {
-                    bookCount = Math.Max(dbBooks, 12);
-                    int dbCopies = _context.Books.Sum(b => b.Quantity);
-                    copyCount = Math.Max(dbCopies, 127);
-                }
-
-                int dbBorrowing = _context.BorrowTickets.Count(t => t.Status == "Đang mượn");
-                if (dbBorrowing > 0) borrowingCount = dbBorrowing;
-
-                int dbOverdue = _context.BorrowTickets.Count(t => t.Status == "Đang mượn" && t.DueDate < DateTime.Now);
-                if (dbOverdue > 0) overdueCount = dbOverdue;
-
-                int dbPending = _context.BorrowTickets.Count(t => t.Status == "Chờ duyệt");
-                if (dbPending > 0) pendingCount = dbPending;
-            }
-            catch
-            {
-                // Sử dụng số liệu tiêu chuẩn từ hình ảnh thiết kế
-            }
+            // 1. Thống kê số liệu thời gian thực từ Database
+            int bookCount = _context.Books.Count();
+            int copyCount = _context.Books.Sum(b => (int?)b.Quantity) ?? 0;
+            int borrowingCount = _context.BorrowTickets.Count(t => t.Status == "Đang mượn" || t.Status == "Trả một phần");
+            int overdueCount = _context.BorrowTickets.Count(t => (t.Status == "Đang mượn" || t.Status == "Trả một phần") && t.DueDate < DateTime.Now);
+            int pendingCount = _context.BorrowTickets.Count(t => t.Status == "Chờ duyệt");
 
             ViewBag.TotalBooks = bookCount;
             ViewBag.TotalCopies = copyCount;
@@ -54,61 +34,126 @@ namespace LibraryManagement.Areas.Admin.Controllers
             ViewBag.TotalOverdue = overdueCount;
             ViewBag.TotalPending = pendingCount;
 
-            // 3. Dữ liệu biểu đồ Xu hướng Mượn & Trả (6 tháng gần nhất)
-            ViewBag.TrendMonths = new[] { "T6/2026", "T7/2026", "T8/2026", "T9/2026", "T10/2026", "T11/2026" };
-            ViewBag.BorrowTrend = new[] { 0, 0, 0, 0, 2, 1 };
-            ViewBag.ReturnTrend = new[] { 0, 0, 0, 0, 1, 0 };
+            // 2. Dữ liệu biểu đồ Xu hướng Mượn & Trả (6 tháng gần nhất từ Database)
+            var trendMonths = new List<string>();
+            var borrowCounts = new List<int>();
+            var returnCounts = new List<int>();
 
-            // 4. Dữ liệu biểu đồ Cơ cấu Thể loại Sách (Donut Chart)
-            ViewBag.CategoryLabels = new[] { 
-                "Văn học Việt Nam", 
-                "Văn học nước ngoài", 
-                "Công nghệ thông tin & Lập trình", 
-                "Trí tuệ nhân tạo & Dữ liệu", 
-                "Toán học & Khoa học cơ bản", 
-                "Kinh tế & Quản trị kinh doanh" 
-            };
-            ViewBag.CategoryData = new[] { 35, 20, 15, 12, 10, 8 };
-
-            // 5. Danh sách Phiếu mượn gần đây
-            List<tblBorrowTicket> recentBorrows = new List<tblBorrowTicket>();
-            try
+            DateTime now = DateTime.Now;
+            for (int i = 5; i >= 0; i--)
             {
-                recentBorrows = _context.BorrowTickets
-                    .OrderByDescending(t => t.TicketID)
-                    .Take(5)
-                    .ToList();
+                var targetMonth = now.AddMonths(-i);
+                int year = targetMonth.Year;
+                int month = targetMonth.Month;
+
+                trendMonths.Add($"T{month}/{year}");
+
+                int bCount = _context.BorrowTickets.Count(t => t.BorrowDate.Year == year && t.BorrowDate.Month == month);
+                int rCount = _context.BorrowTickets.Count(t => t.ReturnDate.HasValue && t.ReturnDate.Value.Year == year && t.ReturnDate.Value.Month == month);
+
+                borrowCounts.Add(bCount);
+                returnCounts.Add(rCount);
             }
-            catch { }
 
-            if (recentBorrows == null || recentBorrows.Count == 0)
+            ViewBag.TrendMonths = trendMonths.ToArray();
+            ViewBag.BorrowTrend = borrowCounts.ToArray();
+            ViewBag.ReturnTrend = returnCounts.ToArray();
+
+            // 3. Dữ liệu biểu đồ Cơ cấu Thể loại Sách (100% từ Database)
+            var categories = _context.Categories.Where(c => c.IsActive == true).ToList();
+            var categoryLabels = new List<string>();
+            var categoryData = new List<int>();
+
+            foreach (var cat in categories)
             {
-                recentBorrows = new List<tblBorrowTicket>
+                int count = _context.Books.Count(b => b.CategoryID == cat.CategoryID);
+                if (count > 0 || categories.Count <= 6)
                 {
-                    new tblBorrowTicket
-                    {
-                        TicketID = 1,
-                        UserID = 1,
-                        BorrowDate = DateTime.Now.AddDays(-5),
-                        DueDate = DateTime.Now.AddDays(9),
-                        Status = "Đang mượn",
-                        Note = "PM-202611-001"
-                    }
-                };
+                    categoryLabels.Add(cat.CategoryName ?? "Khác");
+                    categoryData.Add(count);
+                }
             }
 
-            ViewBag.Users = new Dictionary<int, string>
+            // Nếu DB chưa có thể loại nào
+            if (categoryLabels.Count == 0)
             {
-                { 1, "Lê Hoàng Nam (Sinh Viên)" },
-                { 2, "Trần Thị Mai (Giảng Viên)" },
-                { 3, "Nguyễn Quản Trị (Admin)" }
-            };
+                categoryLabels.Add("Chưa có danh mục");
+                categoryData.Add(0);
+            }
+
+            ViewBag.CategoryLabels = categoryLabels.ToArray();
+            ViewBag.CategoryData = categoryData.ToArray();
+
+            // 4. Danh sách Phiếu mượn gần đây (100% từ Database)
+            var recentBorrows = _context.BorrowTickets
+                .OrderByDescending(t => t.TicketID)
+                .Take(5)
+                .ToList();
+
+            ViewBag.Users = _context.Users.ToDictionary(
+                u => u.UserID, 
+                u => $"[{u.Code}] {u.FullName ?? u.UserName}"
+            );
+
+            // 5. Top Sách Mượn Nhiều (Thống kê thực tế từ tblBorrowDetail và tblBook)
+            var borrowedBookGroup = _context.BorrowDetails
+                .GroupBy(d => d.BookID)
+                .Select(g => new { BookID = g.Key, BorrowCount = g.Count() })
+                .OrderByDescending(g => g.BorrowCount)
+                .Take(4)
+                .ToList();
+
+            var topBookIds = borrowedBookGroup.Select(g => g.BookID).ToList();
+            var topBooksDict = _context.Books.Where(b => topBookIds.Contains(b.BookID)).ToDictionary(b => b.BookID, b => b);
+            var authorsDict = _context.Authors.ToDictionary(a => a.AuthorID, a => a.AuthorName ?? "Chưa rõ");
+
+            var topBooksList = new List<dynamic>();
+            foreach (var item in borrowedBookGroup)
+            {
+                if (topBooksDict.ContainsKey(item.BookID))
+                {
+                    var bk = topBooksDict[item.BookID];
+                    string authName = authorsDict.ContainsKey(bk.AuthorID) ? authorsDict[bk.AuthorID] : "Đang cập nhật";
+                    topBooksList.Add(new {
+                        BookID = bk.BookID,
+                        Code = bk.Code,
+                        Title = bk.Title,
+                        Author = authName,
+                        Image = bk.Images,
+                        AvailableQuantity = bk.AvailableQuantity,
+                        BorrowCount = item.BorrowCount
+                    });
+                }
+            }
+
+            // Nếu chưa có lượt mượn nào, lấy các sách có sẵn trong DB để hiển thị
+            if (topBooksList.Count == 0)
+            {
+                var defaultBooks = _context.Books.Where(b => b.IsActive == true).Take(3).ToList();
+                foreach (var bk in defaultBooks)
+                {
+                    string authName = authorsDict.ContainsKey(bk.AuthorID) ? authorsDict[bk.AuthorID] : "Đang cập nhật";
+                    topBooksList.Add(new {
+                        BookID = bk.BookID,
+                        Code = bk.Code,
+                        Title = bk.Title,
+                        Author = authName,
+                        Image = bk.Images,
+                        AvailableQuantity = bk.AvailableQuantity,
+                        BorrowCount = 0
+                    });
+                }
+            }
+
+            ViewBag.TopBooks = topBooksList;
 
             return View(recentBorrows);
         }
 
-        public IActionResult Logout()
+        [AllowAnonymous]
+        public async Task<IActionResult> Logout()
         {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             Functions.ClearSession();
             return RedirectToAction("Index", "Login", new { area = "Admin" });
         }

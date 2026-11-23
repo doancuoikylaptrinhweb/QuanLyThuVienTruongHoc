@@ -43,6 +43,14 @@
                 </a>
             </li>
             <li class="nav-item mb-1">
+                <a class="nav-link @(currentCtrl == "Borrow" && currentAct == "PendingRequests" ? "active text-white" : "text-secondary")" 
+                   href="/Admin/Borrow/PendingRequests"
+                   style="@(currentCtrl == "Borrow" && currentAct == "PendingRequests" ? "background: #2563eb !important; border-radius: 10px; font-weight: 600;" : "border-radius: 10px; font-weight: 500;")">
+                    <i class="bi bi-clock-history me-2 @(currentCtrl == "Borrow" && currentAct == "PendingRequests" ? "text-white" : "text-primary")"></i>
+                    <span>Duyệt yêu cầu mượn</span>
+                </a>
+            </li>
+            <li class="nav-item mb-1">
                 <a class="nav-link @(currentCtrl == "Borrow" && currentAct == "Create" ? "active text-white" : "text-secondary")" 
                    href="/Admin/Borrow/Create"
                    style="@(currentCtrl == "Borrow" && currentAct == "Create" ? "background: #2563eb !important; border-radius: 10px; font-weight: 600;" : "border-radius: 10px; font-weight: 500;")">

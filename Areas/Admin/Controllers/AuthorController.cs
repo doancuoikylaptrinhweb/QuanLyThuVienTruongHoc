@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using LibraryManagement.Models;
 
 namespace LibraryManagement.Areas.Admin.Controllers
 {
     [Area("Admin")]
+    [Authorize(Roles = "Admin,Librarian")] // Phân quyền cấp CONTROLLER
     public class AuthorController : AdminBaseController
     {
         private readonly DataContext _context;
@@ -109,7 +111,9 @@ namespace LibraryManagement.Areas.Admin.Controllers
             return View(author);
         }
 
-        // 4. XÓA TÁC GIẢ (DELETE - GET)
+        // 4. XÓA TÁC GIẢ (DELETE - GET) - CHỈ ADMIN TỐI CAO
+        [HttpGet]
+        [Authorize(Roles = "Admin")] // Phân quyền cấp ENDPOINT
         public IActionResult Delete(int? id)
         {
             if (id == null || id == 0) return NotFound();
@@ -121,9 +125,10 @@ namespace LibraryManagement.Areas.Admin.Controllers
             return View(author);
         }
 
-        // 4. XÓA TÁC GIẢ (DELETE - POST)
+        // 4. XÓA TÁC GIẢ (DELETE - POST) - CHỈ ADMIN TỐI CAO
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")] // Phân quyền cấp ENDPOINT
         public IActionResult DeleteConfirmed(int id)
         {
             var author = _context.Authors.Find(id);
@@ -132,14 +137,17 @@ namespace LibraryManagement.Areas.Admin.Controllers
             int bookCount = _context.Books.Count(b => b.AuthorID == id);
             if (bookCount > 0)
             {
-                TempData["Error"] = $"Không thể xóa tác giả [{author.AuthorName}] vì đang có {bookCount} đầu sách liên kết!";
+                // Áp dụng SOFT DELETE để bảo toàn khóa ngoại của các đầu sách
+                author.IsActive = false;
+                _context.SaveChanges();
+                TempData["Success"] = $"Tác giả [{author.AuthorName}] đang có {bookCount} đầu sách liên kết. Để bảo toàn toàn vẹn dữ liệu, hệ thống đã chuyển sang chế độ XÓA MỀM (Ẩn tác giả)!";
                 return RedirectToAction(nameof(Index));
             }
 
             _context.Authors.Remove(author);
             _context.SaveChanges();
 
-            TempData["Success"] = $"Đã xóa tác giả [{author.AuthorName}] thành công!";
+            TempData["Success"] = $"Đã xóa vĩnh viễn tác giả [{author.AuthorName}] thành công!";
             return RedirectToAction(nameof(Index));
         }
 

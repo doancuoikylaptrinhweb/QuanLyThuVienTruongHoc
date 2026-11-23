@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using LibraryManagement.Models;
@@ -6,6 +7,7 @@ using LibraryManagement.Utilities;
 namespace LibraryManagement.Areas.Admin.Controllers
 {
     [Area("Admin")]
+    [Authorize(Roles = "Admin")] // Kiểm tra quyền ở cấp CONTROLLER: Chỉ Admin tối cao mới được vào Quản lý tài khoản
     public class UserController : AdminBaseController
     {
         private readonly DataContext _context;
@@ -15,21 +17,18 @@ namespace LibraryManagement.Areas.Admin.Controllers
             _context = context;
         }
 
-        // Kiểm tra phân quyền: Chỉ tài khoản Admin mới có quyền truy cập quản lý người dùng
+        // Kiểm tra phân quyền bổ sung qua bộ lọc
         public override void OnActionExecuting(ActionExecutingContext context)
         {
-            if (string.IsNullOrEmpty(Functions._Role) || Functions._Role != "Admin")
+            var user = context.HttpContext.User;
+            if (user?.Identity?.IsAuthenticated != true)
             {
-                // Nếu chưa đăng nhập hoặc không phải Admin, chuyển hướng về trang đăng nhập
-                if (!Functions.IsLogin())
-                {
-                    context.Result = RedirectToAction("Index", "Login");
-                }
-                else
-                {
-                    TempData["Error"] = "Bạn không có quyền truy cập chức năng Phân quyền hệ thống!";
-                    context.Result = RedirectToAction("Index", "Home");
-                }
+                context.Result = RedirectToAction("Index", "Login", new { area = "Admin" });
+            }
+            else if (!user.IsInRole("Admin"))
+            {
+                TempData["Error"] = "Bạn không có quyền truy cập chức năng Phân quyền hệ thống (chỉ dành cho Admin)!";
+                context.Result = RedirectToAction("AccessDenied", "Login", new { area = "Admin" });
             }
             base.OnActionExecuting(context);
         }
@@ -51,15 +50,16 @@ namespace LibraryManagement.Areas.Admin.Controllers
                 }
                 else if (!_context.Users.Any(u => u.Role == "Admin"))
                 {
-                    _context.Users.Add(new tblUser
+                    var newAdmin = new tblUser
                     {
                         UserName = "admin",
                         FullName = "Nguyễn Quản Trị (Admin)",
                         Email = "admin@thuvien.edu.vn",
-                        Password = Functions.MD5Password("123456"),
                         Role = "Admin",
                         IsActive = true
-                    });
+                    };
+                    newAdmin.Password = PasswordSecurity.HashPassword(newAdmin, "123456");
+                    _context.Users.Add(newAdmin);
                     _context.SaveChanges();
                 }
             }
@@ -67,6 +67,8 @@ namespace LibraryManagement.Areas.Admin.Controllers
         }
 
         // 1. HIỂN THỊ DANH SÁCH NGƯỜI DÙNG & PHÂN QUYỀN
+        [HttpGet]
+        [Authorize(Roles = "Admin")] // Kiểm tra quyền ở cấp ENDPOINT
         public IActionResult Index(string? keyword)
         {
             EnsureAdminExists();
@@ -99,6 +101,7 @@ namespace LibraryManagement.Areas.Admin.Controllers
 
         // 2. TẠO TÀI KHOẢN MỚI (Admin / Thủ thư / Độc giả)
         [HttpPost]
+        [Authorize(Roles = "Admin")] // Kiểm tra quyền ở cấp ENDPOINT
         public IActionResult Create(tblUser user)
         {
             if (string.IsNullOrWhiteSpace(user.UserName) || string.IsNullOrWhiteSpace(user.Password))
@@ -108,7 +111,7 @@ namespace LibraryManagement.Areas.Admin.Controllers
             }
 
             // Kiểm tra trùng tên tài khoản
-            if (_context.Users.Any(u => u.UserName.ToLower() == user.UserName.Trim().ToLower()))
+            if (_context.Users.Any(u => u.UserName != null && u.UserName.ToLower() == user.UserName.Trim().ToLower()))
             {
                 TempData["Error"] = $"Tên tài khoản '{user.UserName}' đã tồn tại trong hệ thống!";
                 return RedirectToAction(nameof(Index));
@@ -120,8 +123,8 @@ namespace LibraryManagement.Areas.Admin.Controllers
                 user.Role = "Reader";
             }
 
-            // Mã hóa mật khẩu MD5 chuẩn
-            user.Password = Functions.MD5Password(user.Password);
+            // Băm mật khẩu an toàn bằng PasswordHasher (PBKDF2 HMAC-SHA256 có Salt ngẫu nhiên)
+            user.Password = PasswordSecurity.HashPassword(user, user.Password);
             user.IsActive = true;
             user.UserName = user.UserName.Trim();
 
@@ -142,6 +145,7 @@ namespace LibraryManagement.Areas.Admin.Controllers
 
         // 3. ĐỔI PHÂN QUYỀN (Role: Admin / Librarian / Reader)
         [HttpPost]
+        [Authorize(Roles = "Admin")] // Kiểm tra quyền ở cấp ENDPOINT
         public IActionResult ChangeRole(int id, string role)
         {
             if (id == Functions._UserID)
@@ -168,6 +172,7 @@ namespace LibraryManagement.Areas.Admin.Controllers
 
         // 4. KHÓA / MỞ KHÓA TÀI KHOẢN
         [HttpPost]
+        [Authorize(Roles = "Admin")] // Kiểm tra quyền ở cấp ENDPOINT
         public IActionResult ToggleActive(int id)
         {
             if (id == Functions._UserID)
@@ -187,22 +192,24 @@ namespace LibraryManagement.Areas.Admin.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // 5. ĐẶT LẠI MẬT KHẨU (Reset Password về mặc định 123456)
+        // 5. ĐẶT LẠI MẬT KHẨU (Reset Password về mặc định 123456 bằng PasswordHasher)
         [HttpPost]
+        [Authorize(Roles = "Admin")] // Kiểm tra quyền ở cấp ENDPOINT
         public IActionResult ResetPassword(int id)
         {
             var user = _context.Users.Find(id);
             if (user == null) return NotFound();
 
-            user.Password = Functions.MD5Password("123456");
+            user.Password = PasswordSecurity.HashPassword(user, "123456");
             _context.SaveChanges();
 
-            TempData["Success"] = $"Đã đặt lại mật khẩu cho '{user.UserName}' về mặc định là: 123456";
+            TempData["Success"] = $"Đã đặt lại mật khẩu cho '{user.UserName}' về mặc định an toàn là: 123456";
             return RedirectToAction(nameof(Index));
         }
 
         // 6. XÓA TÀI KHOẢN
         [HttpPost]
+        [Authorize(Roles = "Admin")] // Kiểm tra quyền ở cấp ENDPOINT
         public IActionResult Delete(int id)
         {
             if (id == Functions._UserID)
@@ -214,13 +221,26 @@ namespace LibraryManagement.Areas.Admin.Controllers
             var user = _context.Users.Find(id);
             if (user == null) return NotFound();
 
-            // Kiểm tra xem người dùng có phiếu mượn nào không
-            if (_context.BorrowTickets.Any(t => t.UserID == id))
+            // QUY TẮC BẢO TOÀN DỮ LIỆU:
+            // 1. Nếu đang có phiếu mượn chưa trả -> TUYỆT ĐỐI CHẶN XÓA
+            bool hasUnreturnedTickets = _context.BorrowTickets.Any(t => t.UserID == id && t.Status != "Đã trả");
+            if (hasUnreturnedTickets)
             {
-                TempData["Error"] = $"Không thể xóa tài khoản '{user.UserName}' vì đang có lịch sử phiếu mượn sách. Hãy chọn chức năng Khóa tài khoản!";
+                TempData["Error"] = $"Không thể xóa tài khoản '{user.UserName}' vì đang có sách mượn chưa hoàn kho! Vui lòng thu hồi sách trước.";
                 return RedirectToAction(nameof(Index));
             }
 
+            // 2. Nếu có lịch sử phiếu mượn cũ -> ÁP DỤNG SOFT DELETE ĐỂ BẢO TOÀN DỮ LIỆU
+            bool hasHistory = _context.BorrowTickets.Any(t => t.UserID == id);
+            if (hasHistory)
+            {
+                user.IsActive = false; // Xóa mềm: Khóa tài khoản
+                _context.SaveChanges();
+                TempData["Success"] = $"Tài khoản '{user.UserName}' đã có lịch sử mượn trả trong thư viện. Để bảo toàn toàn vẹn dữ liệu phiếu mượn, hệ thống đã chuyển sang chế độ XÓA MỀM (Khóa tài khoản)!";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // 3. Nếu chưa từng phát sinh phiếu mượn -> Xóa cứng an toàn
             _context.Users.Remove(user);
             _context.SaveChanges();
 

@@ -1,31 +1,102 @@
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.AspNetCore.Http;
 using SlugGenerator;
 
 namespace LibraryManagement.Utilities
 {
     public class Functions
     {
-        // 1. Các biến tĩnh lưu phiên đăng nhập (Mặc định là Khách vãng lai - Guest)
-        public static int _UserID = 0;
-        public static string _UserName = string.Empty;
-        public static string _Email = string.Empty;
-        public static string _Role = string.Empty;      // "Admin", "Librarian", "Reader"
+        private static IHttpContextAccessor? _httpContextAccessor;
+
+        public static void Configure(IHttpContextAccessor httpContextAccessor)
+        {
+            _httpContextAccessor = httpContextAccessor;
+        }
+
+        // Biến static lưu trữ fallback (nếu chưa dùng claims)
+        private static int _fallbackUserID = 0;
+        private static string _fallbackUserName = string.Empty;
+        private static string _fallbackEmail = string.Empty;
+        private static string _fallbackRole = string.Empty;
         public static string _Message = string.Empty;
 
-        // 2. Hàm sinh URL thân thiện cho chi tiết sách (Lab 05 trang 2)
+        // 1. Thuộc tính động lấy trực tiếp từ Cookie Claims của request hiện tại (tránh race-condition giữa nhiều user)
+        public static int _UserID
+        {
+            get
+            {
+                var user = _httpContextAccessor?.HttpContext?.User;
+                if (user?.Identity?.IsAuthenticated == true)
+                {
+                    var idClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    if (int.TryParse(idClaim, out int uid)) return uid;
+                }
+                return _fallbackUserID;
+            }
+            set => _fallbackUserID = value;
+        }
+
+        public static string _UserName
+        {
+            get
+            {
+                var user = _httpContextAccessor?.HttpContext?.User;
+                if (user?.Identity?.IsAuthenticated == true)
+                {
+                    var name = user.FindFirst(ClaimTypes.GivenName)?.Value 
+                               ?? user.FindFirst(ClaimTypes.Name)?.Value;
+                    if (!string.IsNullOrEmpty(name)) return name;
+                }
+                return _fallbackUserName;
+            }
+            set => _fallbackUserName = value;
+        }
+
+        public static string _Email
+        {
+            get
+            {
+                var user = _httpContextAccessor?.HttpContext?.User;
+                if (user?.Identity?.IsAuthenticated == true)
+                {
+                    var email = user.FindFirst(ClaimTypes.Email)?.Value;
+                    if (!string.IsNullOrEmpty(email)) return email;
+                }
+                return _fallbackEmail;
+            }
+            set => _fallbackEmail = value;
+        }
+
+        public static string _Role
+        {
+            get
+            {
+                var user = _httpContextAccessor?.HttpContext?.User;
+                if (user?.Identity?.IsAuthenticated == true)
+                {
+                    var role = user.FindFirst(ClaimTypes.Role)?.Value;
+                    if (!string.IsNullOrEmpty(role)) return role;
+                }
+                return _fallbackRole;
+            }
+            set => _fallbackRole = value;
+        }
+
+        // 2. Hàm sinh URL thân thiện cho chi tiết sách
         public static string TitlesSlugGeneration(string type, string? title, long id)
         {
             return type + "-" + SlugGenerator.SlugGenerator.GenerateSlug(title) + "-" + id.ToString() + ".html";
         }
 
-        // 3. Hàm lấy ngày giờ hiện tại chuẩn định dạng (Lab 08 trang 6)
+        // 3. Hàm lấy ngày giờ hiện tại chuẩn định dạng
         public static string GetCurrentDate()
         {
             return DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
         }
 
-        // 4. Các hàm mã hóa mật khẩu MD5 (Lab 10 trang 3)
+        // 4. Các hàm mã hóa MD5 (dùng cho tương thích ngược)
         public static string MD5Hash(string text)
         {
             using (MD5 md5 = MD5.Create())
@@ -50,25 +121,35 @@ namespace LibraryManagement.Utilities
             return str;
         }
 
-        // 5. Hàm kiểm tra đã đăng nhập chưa
+        // 5. Hàm kiểm tra đã đăng nhập chưa (ưu tiên kiểm tra Cookie Auth của request)
         public static bool IsLogin()
         {
-            return _UserID > 0 && !string.IsNullOrEmpty(_UserName);
+            var user = _httpContextAccessor?.HttpContext?.User;
+            if (user?.Identity?.IsAuthenticated == true)
+            {
+                return true;
+            }
+            return _fallbackUserID > 0 && !string.IsNullOrEmpty(_fallbackUserName);
         }
 
         // 6. Hàm kiểm tra quyền Quản trị (Admin hoặc Thủ thư)
         public static bool IsAdmin()
         {
-            return IsLogin() && (_Role == "Admin" || _Role == "Librarian");
+            var user = _httpContextAccessor?.HttpContext?.User;
+            if (user?.Identity?.IsAuthenticated == true)
+            {
+                return user.IsInRole("Admin") || user.IsInRole("Librarian");
+            }
+            return IsLogin() && (_fallbackRole == "Admin" || _fallbackRole == "Librarian");
         }
 
         // 7. Hàm xóa phiên đăng nhập (Đăng xuất)
         public static void ClearSession()
         {
-            _UserID = 0;
-            _UserName = string.Empty;
-            _Email = string.Empty;
-            _Role = string.Empty;
+            _fallbackUserID = 0;
+            _fallbackUserName = string.Empty;
+            _fallbackEmail = string.Empty;
+            _fallbackRole = string.Empty;
             _Message = string.Empty;
         }
     }
