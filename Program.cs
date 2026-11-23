@@ -66,6 +66,12 @@ try
 
             IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('tblPublisher') AND name = 'IsActive')
                 ALTER TABLE [dbo].[tblPublisher] ADD [IsActive] BIT NOT NULL DEFAULT 1;
+
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('tblAuthor') AND name = 'IsActive')
+                ALTER TABLE [dbo].[tblAuthor] ADD [IsActive] BIT NOT NULL DEFAULT 1;
+
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('tblAuthor') AND name = 'Bio')
+                ALTER TABLE [dbo].[tblAuthor] ADD [Bio] NVARCHAR(500) NULL;
         ");
     }
 }
