@@ -6,11 +6,11 @@ namespace LibraryManagement.Utilities
 {
     public class Functions
     {
-        // 1. Các biến tĩnh lưu phiên đăng nhập (Mặc định phiên Admin Quản trị)
-        public static int _UserID = 3;
-        public static string _UserName = "Nguyễn Quản Trị (Admin)";
-        public static string _Email = "admin@thuvien.edu.vn";
-        public static string _Role = "Admin";      // "Admin", "Librarian", "Reader"
+        // 1. Các biến tĩnh lưu phiên đăng nhập (Mặc định là Khách vãng lai - Guest)
+        public static int _UserID = 0;
+        public static string _UserName = string.Empty;
+        public static string _Email = string.Empty;
+        public static string _Role = string.Empty;      // "Admin", "Librarian", "Reader"
         public static string _Message = string.Empty;
 
         // 2. Hàm sinh URL thân thiện cho chi tiết sách (Lab 05 trang 2)
@@ -50,14 +50,26 @@ namespace LibraryManagement.Utilities
             return str;
         }
 
-        // 5. Hàm kiểm tra đã đăng nhập chưa (Lab 10 trang 11)
+        // 5. Hàm kiểm tra đã đăng nhập chưa
         public static bool IsLogin()
         {
-            if (_UserID <= 0 || string.IsNullOrEmpty(_UserName))
-            {
-                return false;
-            }
-            return true;
+            return _UserID > 0 && !string.IsNullOrEmpty(_UserName);
+        }
+
+        // 6. Hàm kiểm tra quyền Quản trị (Admin hoặc Thủ thư)
+        public static bool IsAdmin()
+        {
+            return IsLogin() && (_Role == "Admin" || _Role == "Librarian");
+        }
+
+        // 7. Hàm xóa phiên đăng nhập (Đăng xuất)
+        public static void ClearSession()
+        {
+            _UserID = 0;
+            _UserName = string.Empty;
+            _Email = string.Empty;
+            _Role = string.Empty;
+            _Message = string.Empty;
         }
     }
 }

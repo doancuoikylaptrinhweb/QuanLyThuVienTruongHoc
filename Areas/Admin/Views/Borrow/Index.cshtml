@@ -1,78 +1,224 @@
 @using LibraryManagement.Models
 @model IList<tblBorrowTicket>
 
+@{
+    ViewData["Title"] = "Quản lý Mượn / Trả Sách";
+    var users = ViewBag.Users as Dictionary<int, tblUser>;
+    var ticketBooks = ViewBag.TicketBooks as Dictionary<int, tblBook>;
+}
+
 <main id="main" class="main">
-    <div class="pagetitle">
-        <h2>Quản lý Mượn / Trả Sách</h2>
+    <div class="pagetitle mb-3">
+        <h2>Quản lý Mượn &amp; Trả Sách</h2>
+        <p class="text-muted small mb-0">Theo dõi thông tin lập phiếu mượn, xác nhận trả sách và quản lý mã định danh chuẩn hóa (PM..., PT..., DG..., MS...)</p>
+    </div>
+
+    <!-- Alert Notifications -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-4 border-0 shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Search & Action Toolbar -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-3">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-7">
+                    <form method="get" asp-area="Admin" asp-controller="Borrow" asp-action="Index" class="d-flex gap-2">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                            <input type="text" name="keyword" class="form-control border-start-0" 
+                                   placeholder="Tra cứu theo Mã phiếu (PM...), Mã trả (PT...), Mã độc giả (DG...), Mã sách (MS...)..." 
+                                   value="@ViewBag.Keyword">
+                        </div>
+                        <button type="submit" class="btn btn-primary px-3 fw-semibold">
+                            Tìm kiếm
+                        </button>
+                        @if (!string.IsNullOrEmpty(ViewBag.Keyword as string))
+                        {
+                            <a asp-area="Admin" asp-controller="Borrow" asp-action="Index" class="btn btn-light border px-3">
+                                Xóa lọc
+                            </a>
+                        }
+                    </form>
+                </div>
+                <div class="col-md-5 text-md-end">
+                    <a class="btn btn-success rounded-pill px-4 py-2 fw-semibold shadow-sm" asp-area="Admin" asp-controller="Borrow" asp-action="Create">
+                        <i class="bi bi-plus-circle me-1"></i> Lập phiếu mượn mới
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 
     <section class="section dashboard">
         <div class="row">
             <div class="col-12">
-                <div class="card recent-sales overflow-auto">
-                    <div class="card-body mt-4">
-                        <div class="d-flex justify-content-between mb-3">
-                            <h5 class="card-title">Danh sách phiếu mượn</h5>
-                            <a class="btn btn-success" asp-area="Admin" asp-controller="Borrow" asp-action="Create">
-                                <i class="bi bi-plus-circle me-1"></i> Lập phiếu mượn mới
-                            </a>
-                        </div>
-
-                        <table class="table table-bordered align-middle">
-                            <thead class="table-light">
-                                <tr>
-                                    <th class="text-center">Mã phiếu</th>
-                                    <th>Độc giả</th>
-                                    <th class="text-center">Ngày mượn</th>
-                                    <th class="text-center">Hạn trả</th>
-                                    <th class="text-center">Ngày thực trả</th>
-                                    <th class="text-center">Trạng thái</th>
-                                    <th class="text-center">Thao tác</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var item in Model)
-                                {
-                                    var users = ViewBag.Users as Dictionary<int, string>;
-                                    string userName = users != null && users.ContainsKey(item.UserID) ? users[item.UserID] : "Độc giả ẩn";
-
+                <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                    <div class="card-body p-4">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0" style="font-size: 13.5px;">
+                                <thead class="table-light">
                                     <tr>
-                                        <td class="text-center fw-bold">#@item.TicketID</td>
-                                        <td><strong>@userName</strong></td>
-                                        <td class="text-center">@item.BorrowDate.ToString("dd/MM/yyyy HH:mm")</td>
-                                        <td class="text-center">@item.DueDate.ToString("dd/MM/yyyy")</td>
-                                        <td class="text-center">
-                                            @(item.ReturnDate.HasValue ? item.ReturnDate.Value.ToString("dd/MM/yyyy HH:mm") : "---")
-                                        </td>
-                                        <td class="text-center">
-                                            @if (item.Status == "Đang mượn")
-                                            {
-                                                <span class="badge bg-warning text-dark">Đang mượn</span>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-success">Đã trả</span>
-                                            }
-                                        </td>
-                                        <td class="text-center">
-                                            @if (item.Status == "Đang mượn")
-                                            {
-                                                <form method="post" asp-area="Admin" asp-controller="Borrow" asp-action="ReturnBook" asp-route-id="@item.TicketID" 
-                                                      onsubmit="return confirm('Xác nhận độc giả đã trả sách?');" style="display:inline-block;">
-                                                    <button type="submit" class="btn btn-sm btn-primary">
-                                                        <i class="bi bi-check2-circle"></i> Trả sách
-                                                    </button>
-                                                </form>
-                                            }
-                                            else
-                                            {
-                                                <span class="text-muted"><i class="bi bi-check-all text-success"></i> Hoàn tất</span>
-                                            }
-                                        </td>
+                                        <th class="text-center">Mã phiếu mượn</th>
+                                        <th class="text-center">Mã trả sách</th>
+                                        <th>Độc giả</th>
+                                        <th>Sách mượn</th>
+                                        <th class="text-center">Ngày mượn</th>
+                                        <th class="text-center">Hạn trả</th>
+                                        <th class="text-center">Ngày trả</th>
+                                        <th class="text-center">Trạng thái</th>
+                                        <th class="text-center">Thao tác</th>
                                     </tr>
-                                }
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    @if (Model == null || Model.Count == 0)
+                                    {
+                                        <tr>
+                                            <td colspan="9" class="text-center py-4 text-muted">
+                                                <i class="bi bi-inbox fs-2 d-block mb-1 opacity-50"></i>
+                                                Chưa có phiếu mượn nào phù hợp với điều kiện tìm kiếm.
+                                            </td>
+                                        </tr>
+                                    }
+                                    else
+                                    {
+                                        @foreach (var item in Model)
+                                        {
+                                            tblUser user = null;
+                                            if (users != null && users.ContainsKey(item.UserID))
+                                            {
+                                                user = users[item.UserID];
+                                            }
+
+                                            tblBook book = null;
+                                            if (ticketBooks != null && ticketBooks.ContainsKey(item.TicketID))
+                                            {
+                                                book = ticketBooks[item.TicketID];
+                                            }
+
+                                            <tr>
+                                                <!-- Mã phiếu mượn -->
+                                                <td class="text-center">
+                                                    <span class="badge" style="background: #eef2ff; color: #4338ca; font-weight: 700; font-size: 12.5px; padding: 6px 10px; border-radius: 6px;">
+                                                        @item.Code
+                                                    </span>
+                                                </td>
+
+                                                <!-- Mã trả sách -->
+                                                <td class="text-center">
+                                                    @if (item.Status == "Đã trả")
+                                                    {
+                                                        <span class="badge" style="background: #ecfdf5; color: #059669; font-weight: 700; font-size: 12.5px; padding: 6px 10px; border-radius: 6px;">
+                                                            @item.DisplayReturnCode
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted small">---</span>
+                                                    }
+                                                </td>
+
+                                                <!-- Độc giả kèm mã người dùng -->
+                                                <td>
+                                                    <div class="d-flex align-items-center gap-1">
+                                                        <span class="badge bg-light text-dark border small fw-semibold">
+                                                            @(user != null ? user.Code : $"DG{item.UserID:D4}")
+                                                        </span>
+                                                        <strong class="text-dark">@(user != null ? (user.FullName ?? user.UserName) : "Độc giả #" + item.UserID)</strong>
+                                                    </div>
+                                                </td>
+
+                                                <!-- Sách kèm mã sách -->
+                                                <td>
+                                                    @if (book != null)
+                                                    {
+                                                        <div class="d-flex align-items-center gap-1">
+                                                            <span class="badge bg-light text-primary border border-primary-subtle small fw-semibold">
+                                                                @book.Code
+                                                            </span>
+                                                            <span class="text-truncate" style="max-width: 200px;" title="@book.Title">
+                                                                @book.Title
+                                                            </span>
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted">Tài liệu thư viện</span>
+                                                    }
+                                                </td>
+
+                                                <!-- Ngày mượn -->
+                                                <td class="text-center text-muted">@item.BorrowDate.ToString("dd/MM/yyyy")</td>
+
+                                                <!-- Hạn trả -->
+                                                <td class="text-center">
+                                                    @{
+                                                        bool isOverdue = item.Status == "Đang mượn" && DateTime.Now.Date > item.DueDate.Date;
+                                                    }
+                                                    @if (isOverdue)
+                                                    {
+                                                        <span class="text-danger fw-bold" title="Phiếu đã quá hạn!">
+                                                            <i class="bi bi-exclamation-circle me-1"></i>@item.DueDate.ToString("dd/MM/yyyy")
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>@item.DueDate.ToString("dd/MM/yyyy")</span>
+                                                    }
+                                                </td>
+
+                                                <!-- Ngày thực trả -->
+                                                <td class="text-center">
+                                                    @(item.ReturnDate.HasValue ? item.ReturnDate.Value.ToString("dd/MM/yyyy") : "---")
+                                                </td>
+
+                                                <!-- Trạng thái -->
+                                                <td class="text-center">
+                                                    @if (item.Status == "Đang mượn")
+                                                    {
+                                                        if (DateTime.Now.Date > item.DueDate.Date)
+                                                        {
+                                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3 py-1">Quá hạn trả</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-3 py-1">Đang mượn</span>
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1">Đã trả sách</span>
+                                                    }
+                                                </td>
+
+                                                <!-- Thao tác trả sách -->
+                                                <td class="text-center">
+                                                    @if (item.Status == "Đang mượn")
+                                                    {
+                                                        <form method="post" asp-area="Admin" asp-controller="Borrow" asp-action="ReturnBook" asp-route-id="@item.TicketID" 
+                                                              onsubmit="return confirm('Xác nhận độc giả đã trả sách cho phiếu [@item.Code]? Hệ thống sẽ tự động tạo Mã trả sách.');" style="display:inline-block;">
+                                                            <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm">
+                                                                <i class="bi bi-check2-circle me-1"></i> Trả sách
+                                                            </button>
+                                                        </form>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-success small fw-semibold">
+                                                            <i class="bi bi-check-all"></i> Hoàn tất
+                                                        </span>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
 
                     </div>
                 </div>

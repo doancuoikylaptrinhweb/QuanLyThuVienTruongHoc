@@ -4,7 +4,7 @@ using LibraryManagement.Models;
 namespace LibraryManagement.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    public class PublisherController : Controller
+    public class PublisherController : AdminBaseController
     {
         private readonly DataContext _context;
 

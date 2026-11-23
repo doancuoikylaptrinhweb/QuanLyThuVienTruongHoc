@@ -2,48 +2,62 @@
 @model tblBorrowTicket
 
 <main id="main" class="main">
-    <div class="pagetitle">
+    <div class="pagetitle mb-3">
         <h2>Lập Phiếu Mượn Sách Mới</h2>
+        <p class="text-muted small mb-0">Hệ thống hỗ trợ chọn độc giả theo Mã độc giả (DG...), chọn sách theo Mã sách (MS...) và tự động trừ số lượng sách khả dụng trong kho.</p>
     </div>
 
-    <div class="card">
-        <div class="card-body mt-4">
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-4">
             <form method="post" asp-area="Admin" asp-controller="Borrow" asp-action="Create">
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">Chọn Độc giả mượn</label>
-                        <select class="form-select" asp-for="UserID" asp-items="ViewBag.UserList" required>
-                            <option value="">-- Chọn độc giả --</option>
-                        </select>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Mã phiếu mượn</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-muted"><i class="bi bi-upc-scan"></i></span>
+                            <input type="text" class="form-control" asp-for="TicketCode" placeholder="@ViewBag.PreviewTicketCode (Tự động sinh nếu để trống)">
+                        </div>
+                        <small class="text-muted">Mặc định hệ thống tự động cấp mã dạng <code>PM000X</code></small>
                     </div>
 
+                    <div class="col-md-8">
+                        <label class="form-label fw-bold">Chọn Độc giả mượn <span class="text-danger">*</span></label>
+                        <select class="form-select" asp-for="UserID" asp-items="ViewBag.UserList" required>
+                            <option value="">-- Chọn độc giả mượn sách --</option>
+                        </select>
+                        <small class="text-muted">Độc giả được hiển thị theo cú pháp: <code>[Mã độc giả] Tên bạn đọc (Vai trò)</code></small>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
                     <div class="col-md-6">
-                        <label class="form-label fw-bold">Chọn Cuốn sách cần mượn</label>
+                        <label class="form-label fw-bold">Chọn Cuốn sách cần mượn <span class="text-danger">*</span></label>
                         <select class="form-select" name="bookId" asp-items="ViewBag.BookList" required>
                             <option value="">-- Chọn sách còn trên kệ --</option>
                         </select>
+                        <small class="text-muted">Hiển thị theo cú pháp: <code>[Mã sách] Tên sách (Số lượng khả dụng)</code></small>
                     </div>
-                </div>
 
-                <div class="row mb-3">
                     <div class="col-md-6">
-                        <label class="form-label fw-bold">Hạn phải trả sách</label>
+                        <label class="form-label fw-bold">Hạn phải trả sách <span class="text-danger">*</span></label>
                         <input type="date" class="form-control" asp-for="DueDate" value="@DateTime.Now.AddDays(14).ToString("yyyy-MM-dd")" required>
-                        <small class="text-muted">Mặc định thời hạn mượn là 14 ngày</small>
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">Ghi chú (tình trạng sách lúc mượn)</label>
-                        <input type="text" class="form-control" asp-for="Note" placeholder="Ví dụ: Sách còn mới nguyên bìa...">
+                        <small class="text-muted">Mặc định thời hạn mượn tiêu chuẩn là 14 ngày</small>
                     </div>
                 </div>
 
-                <a asp-area="Admin" asp-controller="Borrow" asp-action="Index" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left-circle"></i> Quay lại
-                </a>
-                <button type="submit" class="btn btn-success">
-                    <i class="bi bi-journal-plus"></i> Xác nhận cho mượn
-                </button>
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Ghi chú (tình trạng sách lúc mượn)</label>
+                    <input type="text" class="form-control" asp-for="Note" placeholder="Ví dụ: Sách mới 98%, có bao bìa nguyên vẹn...">
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <a asp-area="Admin" asp-controller="Borrow" asp-action="Index" class="btn btn-secondary rounded-pill px-4">
+                        <i class="bi bi-arrow-left-circle me-1"></i> Quay lại
+                    </a>
+                    <button type="submit" class="btn btn-success rounded-pill px-4 fw-semibold shadow-sm">
+                        <i class="bi bi-journal-plus me-1"></i> Xác nhận lập phiếu mượn
+                    </button>
+                </div>
             </form>
         </div>
     </div>

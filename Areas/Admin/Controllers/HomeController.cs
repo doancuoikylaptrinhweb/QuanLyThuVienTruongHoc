@@ -5,7 +5,7 @@ using LibraryManagement.Utilities;
 namespace LibraryManagement.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    public class HomeController : Controller
+    public class HomeController : AdminBaseController
     {
         private readonly DataContext _context;
 
@@ -16,11 +16,6 @@ namespace LibraryManagement.Areas.Admin.Controllers
 
         public IActionResult Index()
         {
-            // 1. Kiểm tra trạng thái đăng nhập
-            if (!Functions.IsLogin())
-            {
-                return RedirectToAction("Index", "Login");
-            }
 
             // 2. Thống kê số liệu (Mục 10 đồ án - Trực quan hóa Visual Blue)
             int bookCount = 12;
@@ -114,13 +109,8 @@ namespace LibraryManagement.Areas.Admin.Controllers
 
         public IActionResult Logout()
         {
-            Functions._UserID = 0;
-            Functions._UserName = string.Empty;
-            Functions._Email = string.Empty;
-            Functions._Role = string.Empty;
-            Functions._Message = string.Empty;
-
-            return RedirectToAction("Index", "Login");
+            Functions.ClearSession();
+            return RedirectToAction("Index", "Login", new { area = "Admin" });
         }
     }
 }
