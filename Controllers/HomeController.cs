@@ -166,7 +166,10 @@ namespace LibraryManagement.Controllers
             }
 
             string inputUserName = userName.Trim();
-            var check = _context.Users.FirstOrDefault(u => u.UserName != null && u.UserName.ToLower() == inputUserName.ToLower());
+            var check = _context.Users.FirstOrDefault(u => 
+                (u.UserName != null && u.UserName.ToLower() == inputUserName.ToLower()) ||
+                (u.UserCode != null && u.UserCode.ToLower() == inputUserName.ToLower())
+            );
 
             if (check == null)
             {
@@ -330,7 +333,8 @@ namespace LibraryManagement.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = "Có lỗi xảy ra trong quá trình tạo tài khoản: " + ex.Message });
+                var errorMsg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                return Json(new { success = false, message = "Có lỗi xảy ra trong quá trình tạo tài khoản: " + errorMsg });
             }
         }
 

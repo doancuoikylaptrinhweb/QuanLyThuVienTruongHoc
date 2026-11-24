@@ -36,8 +36,11 @@ namespace LibraryManagement.Areas.Admin.Controllers
             string inputUserName = user.UserName.Trim();
             string inputPassword = user.Password ?? string.Empty;
 
-            // Tìm người dùng theo tên đăng nhập
-            var check = _context.Users.FirstOrDefault(u => u.UserName != null && u.UserName.ToLower() == inputUserName.ToLower());
+            // Tìm người dùng theo tên đăng nhập hoặc mã người dùng (AD..., TT...)
+            var check = _context.Users.FirstOrDefault(u => 
+                (u.UserName != null && u.UserName.ToLower() == inputUserName.ToLower()) ||
+                (u.UserCode != null && u.UserCode.ToLower() == inputUserName.ToLower())
+            );
 
             // Tự động khởi tạo tài khoản Admin mặc định nếu lần đầu đăng nhập với admin / 123456
             if (check == null && inputUserName.ToLower() == "admin" && inputPassword == "123456")

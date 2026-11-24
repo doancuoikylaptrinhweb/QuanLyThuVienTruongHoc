@@ -43,7 +43,8 @@
                     </div>
 
                     <div class="form-check form-switch mb-4">
-                        <input asp-for="IsActive" class="form-check-input" type="checkbox" id="isActiveSwitch" />
+                        <input class="form-check-input" type="checkbox" name="IsActive" value="true" id="isActiveSwitch" @(Model.IsActive == true ? "checked" : "") />
+                        <input type="hidden" name="IsActive" value="false" />
                         <label class="form-check-label fw-semibold" for="isActiveSwitch">Kích hoạt hiển thị</label>
                     </div>
 

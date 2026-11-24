@@ -46,6 +46,9 @@ try
             IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('tblUser') AND name = 'UserCode')
                 ALTER TABLE [dbo].[tblUser] ADD [UserCode] NVARCHAR(30) NULL;
 
+            IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('tblUser') AND name = 'Password' AND max_length < 500 AND max_length > 0)
+                ALTER TABLE [dbo].[tblUser] ALTER COLUMN [Password] NVARCHAR(255) NOT NULL;
+
             IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('tblBook') AND name = 'BookCode')
                 ALTER TABLE [dbo].[tblBook] ADD [BookCode] NVARCHAR(30) NULL;
 
