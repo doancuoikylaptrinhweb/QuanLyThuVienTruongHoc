@@ -44,7 +44,14 @@ namespace LibraryManagement.Controllers
             var allBooks = booksQuery.OrderByDescending(b => b.BookID).ToList();
 
             // Toàn bộ danh mục và tác giả lấy 100% từ Database
-            ViewBag.Categories = _context.Categories.Where(c => c.IsActive == true).OrderBy(c => c.CategoryID).ToList();
+            var categories = _context.Categories.Where(c => c.IsActive == true).OrderBy(c => c.CategoryID).ToList();
+            var categoryBookCounts = _context.Books
+                .Where(b => b.IsActive == true && b.CategoryID > 0)
+                .GroupBy(b => b.CategoryID)
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            ViewBag.Categories = categories;
+            ViewBag.CategoryBookCounts = categoryBookCounts;
             ViewBag.Authors = _context.Authors.ToDictionary(a => a.AuthorID, a => a.AuthorName ?? "Chưa rõ");
 
             // Chỉ số thống kê thời gian thực từ Database

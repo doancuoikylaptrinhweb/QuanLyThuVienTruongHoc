@@ -17,12 +17,14 @@ namespace LibraryManagement.Utilities
                 if (!context.Categories.Any())
                 {
                     context.Categories.AddRange(
-                        new tblCategory { CategoryName = "Công nghệ thông tin & Lập trình", Description = "Sách lập trình, mạng máy tính, công nghệ phần mềm", IsActive = true },
-                        new tblCategory { CategoryName = "Trí tuệ nhân tạo & Dữ liệu", Description = "Machine Learning, Deep Learning, Big Data", IsActive = true },
-                        new tblCategory { CategoryName = "Kinh tế & Quản trị kinh doanh", Description = "Quản trị kinh doanh, tài chính, khởi nghiệp", IsActive = true },
-                        new tblCategory { CategoryName = "Giáo trình & Học phần đại học", Description = "Tài liệu giảng dạy và học tập các khối ngành", IsActive = true },
-                        new tblCategory { CategoryName = "Văn học Việt Nam & Nước ngoài", Description = "Tiểu thuyết, văn học cổ điển và hiện đại", IsActive = true },
-                        new tblCategory { CategoryName = "Kỹ năng sống & Phát triển bản thân", Description = "Tư duy, tâm lý học, nghệ thuật giao tiếp", IsActive = true }
+                        new tblCategory { CategoryName = "Văn học & Nghệ thuật", Description = "Tiểu thuyết, truyện ngắn, thơ ca, văn học Việt Nam và thế giới", IsActive = true },
+                        new tblCategory { CategoryName = "Công nghệ thông tin & Lập trình", Description = "Khoa học máy tính, kỹ thuật phần mềm, an toàn mạng và cơ sở dữ liệu", IsActive = true },
+                        new tblCategory { CategoryName = "Kinh tế & Quản trị kinh doanh", Description = "Quản trị doanh nghiệp, tài chính - ngân hàng, kế toán và khởi nghiệp", IsActive = true },
+                        new tblCategory { CategoryName = "Tâm lý & Kỹ năng sống", Description = "Tâm lý học ứng dụng, kỹ năng giao tiếp, tư duy lãnh đạo và phát triển bản thân", IsActive = true },
+                        new tblCategory { CategoryName = "Giáo trình & Học liệu học phần", Description = "Giáo trình chính quy, bài giảng chuyên ngành và tài liệu học tập các khối ngành", IsActive = true },
+                        new tblCategory { CategoryName = "Khoa học tự nhiên & Kỹ thuật", Description = "Toán học, Vật lý, Hóa học, Điện - Điện tử và cơ khí ứng dụng", IsActive = true },
+                        new tblCategory { CategoryName = "Khoa học xã hội & Nhân văn", Description = "Lịch sử, địa lý, triết học, văn hóa, pháp luật và ngôn ngữ học", IsActive = true },
+                        new tblCategory { CategoryName = "Ngoại ngữ & Tài liệu quốc tế", Description = "Tiếng Anh học thuật, IELTS/TOEIC, giáo trình ngoại ngữ và văn hóa thế giới", IsActive = true }
                     );
                     context.SaveChanges();
                 }
