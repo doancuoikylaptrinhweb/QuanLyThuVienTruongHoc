@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using LibraryManagement.Models;
+using LibraryManagement.Services;
 using LibraryManagement.Utilities;
 
 namespace LibraryManagement.Areas.Admin.Controllers
@@ -21,17 +22,31 @@ namespace LibraryManagement.Areas.Admin.Controllers
         // BẢNG ĐIỀU KHIỂN QUẢN TRỊ VIÊN: DỮ LIỆU 100% TRUY VẤN THỰC TẾ TỪ CSDL
         public IActionResult Index()
         {
+            // Đồng bộ cảnh báo quá hạn tự động (gộp theo phiếu mượn, không trùng lặp)
+            OverdueWarningService.SyncOverdueWarnings(_context);
+
             // 1. Thống kê số liệu thời gian thực từ Database
             int bookCount = _context.Books.Count();
             int copyCount = _context.Books.Sum(b => (int?)b.Quantity) ?? 0;
-            int borrowingCount = _context.BorrowTickets.Count(t => t.Status == "Đang mượn" || t.Status == "Trả một phần");
-            int overdueCount = _context.BorrowTickets.Count(t => (t.Status == "Đang mượn" || t.Status == "Trả một phần") && t.DueDate < DateTime.Now);
+            int borrowingCount = _context.BorrowTickets.Count(t => t.Status == "Đang mượn" || t.Status == "Trả một phần" || t.Status == "Chờ duyệt trả");
+
+            var activeWarnings = _context.OverdueWarnings
+                .Where(w => w.WarningStatus != OverdueWarningService.StatusReturned)
+                .OrderByDescending(w => w.OverdueDays)
+                .ToList();
+
+            int overdueCount = activeWarnings.Count;
+            int overdueBookCount = activeWarnings.Sum(w => w.OverdueBookCount);
             int pendingCount = _context.BorrowTickets.Count(t => t.Status == "Chờ duyệt");
 
             ViewBag.TotalBooks = bookCount;
             ViewBag.TotalCopies = copyCount;
             ViewBag.TotalBorrowing = borrowingCount;
             ViewBag.TotalOverdue = overdueCount;
+            ViewBag.TotalOverdueBooks = overdueBookCount;
+            ViewBag.OverdueReminderCount = activeWarnings.Count(w => w.SeverityLevel == OverdueWarningService.SeverityReminder);
+            ViewBag.OverdueWarningCount = activeWarnings.Count(w => w.SeverityLevel == OverdueWarningService.SeverityWarning);
+            ViewBag.OverdueCriticalCount = activeWarnings.Count(w => w.SeverityLevel == OverdueWarningService.SeverityCritical);
             ViewBag.TotalPending = pendingCount;
 
             // 2. Dữ liệu biểu đồ Xu hướng Mượn & Trả (6 tháng gần nhất từ Database)
@@ -146,6 +161,37 @@ namespace LibraryManagement.Areas.Admin.Controllers
             }
 
             ViewBag.TopBooks = topBooksList;
+
+            // 6. Top 5 cảnh báo sách quá hạn nghiêm trọng nhất
+            var top5Warnings = activeWarnings.Take(5).ToList();
+            var topWarningTicketIds = top5Warnings.Select(w => w.TicketID).ToList();
+            var topWarningTickets = _context.BorrowTickets
+                .Where(t => topWarningTicketIds.Contains(t.TicketID))
+                .ToDictionary(t => t.TicketID, t => t);
+            var userDict = _context.Users.ToDictionary(u => u.UserID, u => u);
+
+            var topOverdueList = top5Warnings.Select(w =>
+            {
+                topWarningTickets.TryGetValue(w.TicketID, out var ticket);
+                userDict.TryGetValue(w.UserID, out var reader);
+                return new
+                {
+                    WarningID = w.WarningID,
+                    TicketID = w.TicketID,
+                    TicketCode = ticket?.Code ?? $"PM{w.TicketID:D4}",
+                    ReaderCode = reader?.Code ?? $"DG{w.UserID:D4}",
+                    ReaderName = reader?.FullName ?? reader?.UserName ?? "Bạn đọc",
+                    BookTitles = w.BookTitles ?? "Tài liệu thư viện",
+                    OverdueBookCount = w.OverdueBookCount,
+                    OverdueDays = w.OverdueDays,
+                    DueDate = ticket?.DueDate ?? DateTime.Today.AddDays(-w.OverdueDays),
+                    SeverityLevel = w.SeverityLevel,
+                    WarningStatus = w.WarningStatus,
+                    TicketStatus = ticket?.Status ?? "Đang mượn"
+                };
+            }).ToList();
+
+            ViewBag.TopOverdueWarnings = topOverdueList;
 
             return View(recentBorrows);
         }

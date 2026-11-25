@@ -16,5 +16,6 @@ namespace LibraryManagement.Models
         public DbSet<tblBorrowTicket> BorrowTickets { get; set; }
         public DbSet<tblBorrowDetail> BorrowDetails { get; set; }
         public DbSet<tblAdminMenu> AdminMenus { get; set; }
+        public DbSet<tblOverdueWarning> OverdueWarnings { get; set; }
     }
 }

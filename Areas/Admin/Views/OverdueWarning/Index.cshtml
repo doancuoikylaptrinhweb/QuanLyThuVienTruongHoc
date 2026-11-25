@@ -1,0 +1,348 @@
+@using LibraryManagement.Models
+@using LibraryManagement.Services
+@model IList<tblOverdueWarning>
+
+@{
+    ViewData["Title"] = "Quản Lý Cảnh Báo Sách Quá Hạn";
+    var tickets = ViewBag.Tickets as Dictionary<int, tblBorrowTicket> ?? new Dictionary<int, tblBorrowTicket>();
+    var users = ViewBag.Users as Dictionary<int, tblUser> ?? new Dictionary<int, tblUser>();
+    var detailsByTicket = ViewBag.DetailsByTicket as Dictionary<int, List<tblBorrowDetail>> ?? new Dictionary<int, List<tblBorrowDetail>>();
+    var books = ViewBag.Books as Dictionary<long, tblBook> ?? new Dictionary<long, tblBook>();
+}
+
+<main id="main" class="main">
+
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2">
+        <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle d-flex align-items-center justify-content-center text-white shadow-sm"
+                 style="width: 44px; height: 44px; background: #dc2626; font-size: 20px;">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+            </div>
+            <div>
+                <h4 class="fw-bold mb-0 text-dark" style="font-size: 22px; letter-spacing: -0.3px;">Quản Lý Cảnh Báo Sách Quá Hạn</h4>
+                <small class="text-muted" style="font-size: 13px;">
+                    Tự động phân loại mức độ (Nhắc nhở / Cảnh báo / Nghiêm trọng) và gộp cảnh báo theo phiếu mượn tránh trùng lặp
+                </small>
+            </div>
+        </div>
+        <div class="d-flex gap-2 mt-3 mt-md-0">
+            <form method="post" action="/Admin/OverdueWarning/SyncNow" class="d-inline">
+                <button type="submit" class="btn btn-sm btn-primary d-flex align-items-center gap-2 px-3 py-2 shadow-sm rounded-3 fw-semibold">
+                    <i class="bi bi-arrow-repeat"></i> Đồng bộ dữ liệu
+                </button>
+            </form>
+            <a href="/Admin/Home" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2 px-3 py-2 bg-white text-dark shadow-sm border rounded-3 fw-semibold">
+                <i class="bi bi-speedometer2 text-primary"></i> Bảng điều khiển
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4" role="alert">
+            <i class="bi bi-exclamation-circle-fill me-2"></i>@TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Statistic Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-bold lh-1 mb-2" style="font-size: 28px; color: #dc2626;">@(ViewBag.TotalOverdueBooks ?? 0)</div>
+                        <div class="text-muted small fw-medium">Tổng sách quá hạn (@(ViewBag.TotalActiveWarnings ?? 0) phiếu)</div>
+                    </div>
+                    <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; background: #fef2f2; color: #dc2626; font-size: 20px;">
+                        <i class="bi bi-book-half"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-bold lh-1 mb-2" style="font-size: 28px; color: #ca8a04;">@(ViewBag.ReminderCount ?? 0)</div>
+                        <div class="text-muted small fw-medium">Nhắc nhở (1–3 ngày)</div>
+                    </div>
+                    <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; background: #fef9c3; color: #a16207; font-size: 20px;">
+                        <i class="bi bi-bell"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-bold lh-1 mb-2" style="font-size: 28px; color: #ea580c;">@(ViewBag.WarningCount ?? 0)</div>
+                        <div class="text-muted small fw-medium">Cảnh báo (4–7 ngày)</div>
+                    </div>
+                    <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; background: #ffedd5; color: #c2410c; font-size: 20px;">
+                        <i class="bi bi-exclamation-circle"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-bold lh-1 mb-2" style="font-size: 28px; color: #b91c1c;">@(ViewBag.CriticalCount ?? 0)</div>
+                        <div class="text-muted small fw-medium">Nghiêm trọng (&gt; 7 ngày)</div>
+                    </div>
+                    <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; background: #fee2e2; color: #b91c1c; font-size: 20px;">
+                        <i class="bi bi-shield-exclamation"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Form -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white p-4 mb-4">
+        <form method="get" action="/Admin/OverdueWarning" class="row g-3 align-items-end">
+            <div class="col-12 col-md-3">
+                <label class="form-label fw-semibold small text-secondary mb-1">Độc giả (Tên / Mã bạn đọc)</label>
+                <input type="text" name="readerKeyword" value="@ViewBag.ReaderKeyword" class="form-control rounded-3" placeholder="VD: Nguyễn Văn A, DG0001...">
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label fw-semibold small text-secondary mb-1">Tên sách / Mã sách</label>
+                <input type="text" name="bookKeyword" value="@ViewBag.BookKeyword" class="form-control rounded-3" placeholder="VD: Mắt biếc, MS0001...">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label fw-semibold small text-secondary mb-1">Mức độ / Số ngày quá hạn</label>
+                <select name="overdueRange" class="form-select rounded-3">
+                    <option value="">-- Tất cả --</option>
+                    <option value="1-3" selected="@(ViewBag.OverdueRange == "1-3")">1–3 ngày (Nhắc nhở)</option>
+                    <option value="4-7" selected="@(ViewBag.OverdueRange == "4-7")">4–7 ngày (Cảnh báo)</option>
+                    <option value="8+" selected="@(ViewBag.OverdueRange == "8+")">Trên 7 ngày (Nghiêm trọng)</option>
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label fw-semibold small text-secondary mb-1">Từ số ngày (&ge;)</label>
+                <input type="number" name="minDays" min="1" value="@ViewBag.MinDays" class="form-control rounded-3" placeholder="VD: 5">
+            </div>
+            <div class="col-12 col-md-2">
+                <label class="form-label fw-semibold small text-secondary mb-1">Trạng thái xử lý</label>
+                <select name="status" class="form-select rounded-3">
+                    <option value="">-- Tất cả --</option>
+                    <option value="@OverdueWarningService.StatusPending" selected="@(ViewBag.Status == OverdueWarningService.StatusPending)">Chưa nhắc nhở</option>
+                    <option value="@OverdueWarningService.StatusReminded" selected="@(ViewBag.Status == OverdueWarningService.StatusReminded)">Đã nhắc nhở</option>
+                    <option value="@OverdueWarningService.StatusReturned" selected="@(ViewBag.Status == OverdueWarningService.StatusReturned)">Đã trả sách</option>
+                </select>
+            </div>
+            <div class="col-12 d-flex justify-content-between align-items-center pt-1">
+                <div class="text-muted small">
+                    Chưa nhắc nhở: <strong class="text-danger">@(ViewBag.PendingActionCount ?? 0)</strong> &bull;
+                    Đã nhắc nhở: <strong class="text-success">@(ViewBag.RemindedActionCount ?? 0)</strong>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="/Admin/OverdueWarning" class="btn btn-sm btn-light border rounded-3 px-3 py-2 fw-semibold">
+                        <i class="bi bi-x-circle me-1"></i> Đặt lại
+                    </a>
+                    <button type="submit" class="btn btn-sm btn-primary rounded-3 px-4 py-2 fw-semibold">
+                        <i class="bi bi-funnel me-1"></i> Lọc dữ liệu
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Overdue Warnings Table -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold text-dark mb-0">
+                <i class="bi bi-list-ul text-primary me-2"></i>Danh Sách Cảnh Báo Quá Hạn (Đã Gộp Theo Phiếu Mượn)
+            </h6>
+            <span class="badge bg-light text-secondary border rounded-pill px-3 py-2">
+                Hiển thị @Model.Count bản ghi
+            </span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size: 13.5px;">
+                <thead>
+                    <tr class="text-muted text-uppercase" style="font-size: 11px; letter-spacing: 0.6px; border-bottom: 2px solid #f1f5f9;">
+                        <th class="py-2">PHIẾU MƯỢN</th>
+                        <th class="py-2">ĐỘC GIẢ</th>
+                        <th class="py-2">SÁCH QUÁ HẠN (GỘP)</th>
+                        <th class="py-2">HẠN TRẢ / QUÁ HẠN</th>
+                        <th class="py-2 text-center">MỨC ĐỘ</th>
+                        <th class="py-2">TÌNH TRẠNG TRẢ SÁCH</th>
+                        <th class="py-2">TRẠNG THÁI XỬ LÝ</th>
+                        <th class="py-2 text-center">THAO TÁC</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Count > 0)
+                    {
+                        foreach (var w in Model)
+                        {
+                            tickets.TryGetValue(w.TicketID, out var ticket);
+                            users.TryGetValue(w.UserID, out var reader);
+                            detailsByTicket.TryGetValue(w.TicketID, out var details);
+
+                            int totalBooksInTicket = details?.Count ?? w.OverdueBookCount;
+                            int returnedInTicket = details?.Count(d => d.IsReturned) ?? 0;
+
+                            string sevBg = w.SeverityLevel == OverdueWarningService.SeverityCritical ? "#fee2e2" :
+                                           (w.SeverityLevel == OverdueWarningService.SeverityWarning ? "#ffedd5" : "#fef9c3");
+                            string sevColor = w.SeverityLevel == OverdueWarningService.SeverityCritical ? "#b91c1c" :
+                                              (w.SeverityLevel == OverdueWarningService.SeverityWarning ? "#c2410c" : "#a16207");
+
+                            string stBg = w.WarningStatus == OverdueWarningService.StatusReturned ? "#dcfce7" :
+                                          (w.WarningStatus == OverdueWarningService.StatusReminded ? "#dbeafe" : "#f1f5f9");
+                            string stColor = w.WarningStatus == OverdueWarningService.StatusReturned ? "#15803d" :
+                                             (w.WarningStatus == OverdueWarningService.StatusReminded ? "#1d4ed8" : "#475569");
+
+                            <tr>
+                                <td>
+                                    <span class="badge" style="background: #eef2ff; color: #4338ca; font-weight: 600; padding: 6px 10px; border-radius: 6px;">
+                                        @(ticket?.Code ?? $"PM{w.TicketID:D4}")
+                                    </span>
+                                    <div class="text-muted small mt-1" style="font-size: 11px;">CB #@w.WarningID</div>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold text-dark">@(reader?.FullName ?? reader?.UserName ?? "Bạn đọc")</div>
+                                    <small class="text-muted">@(reader?.Code ?? $"DG{w.UserID:D4}")</small>
+                                    @if (!string.IsNullOrWhiteSpace(reader?.Email))
+                                    {
+                                        <div class="text-muted small" style="font-size: 11px;">@reader.Email</div>
+                                    }
+                                </td>
+                                <td style="max-width: 260px;">
+                                    <div class="fw-medium text-dark" title="@w.BookTitles">@w.BookTitles</div>
+                                    <small class="text-danger fw-semibold">@w.OverdueBookCount cuốn quá hạn</small>
+                                </td>
+                                <td>
+                                    <div class="text-secondary">@(ticket != null ? ticket.DueDate.ToString("dd/MM/yyyy") : "---")</div>
+                                    <span class="fw-bold text-danger">@w.OverdueDays ngày</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge rounded-pill px-3 py-1" style="background: @sevBg; color: @sevColor; font-weight: 600;">
+                                        @w.SeverityLevel
+                                    </span>
+                                </td>
+                                <td>
+                                    @{
+                                        string ticketStatus = ticket?.Status ?? "Đang mượn";
+                                        string tsBadge = ticketStatus == "Đã trả" ? "bg-success-subtle text-success" :
+                                                         (ticketStatus == "Chờ duyệt trả" ? "bg-warning-subtle text-warning-emphasis" :
+                                                         (ticketStatus == "Trả một phần" ? "bg-info-subtle text-info-emphasis" : "bg-danger-subtle text-danger"));
+                                    }
+                                    <span class="badge @tsBadge rounded-pill px-2 py-1 fw-semibold">@ticketStatus</span>
+                                    <div class="text-muted small mt-1" style="font-size: 11.5px;">
+                                        Đã trả: <strong>@returnedInTicket / @totalBooksInTicket</strong> cuốn
+                                    </div>
+                                    @if (ticket?.ReturnDate != null)
+                                    {
+                                        <div class="text-success small" style="font-size: 11px;">Trả: @ticket.ReturnDate.Value.ToString("dd/MM/yyyy")</div>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="badge rounded-pill px-3 py-1" style="background: @stBg; color: @stColor; font-weight: 600;">
+                                        @w.WarningStatus
+                                    </span>
+                                    @if (w.ReminderCount > 0)
+                                    {
+                                        <div class="text-muted small mt-1" style="font-size: 11px;">
+                                            Nhắc @w.ReminderCount lần (@(w.LastRemindedDate?.ToString("dd/MM HH:mm")))
+                                        </div>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(w.ReminderNote))
+                                    {
+                                        <div class="text-muted fst-italic small text-truncate" style="max-width: 180px; font-size: 11px;" title="@w.ReminderNote">
+                                            @w.ReminderNote
+                                        </div>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <div class="d-flex justify-content-center gap-1">
+                                        @if (w.WarningStatus != OverdueWarningService.StatusReturned)
+                                        {
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-primary rounded-3 px-2 py-1 fw-semibold"
+                                                    title="Đánh dấu đã nhắc nhở"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#remindModal"
+                                                    onclick="openRemindModal(@w.WarningID, '@(ticket?.Code ?? $"PM{w.TicketID:D4}")', '@(reader?.FullName ?? reader?.UserName ?? "Bạn đọc")')">
+                                                <i class="bi bi-bell-fill"></i> Nhắc
+                                            </button>
+                                        }
+                                        <a href="/Admin/Borrow/Detail/@w.TicketID"
+                                           class="btn btn-sm btn-light border rounded-3 px-2 py-1 fw-semibold"
+                                           title="Theo dõi & xử lý trả sách">
+                                            <i class="bi bi-journal-check text-success"></i> Phiếu
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="bi bi-check-circle text-success fs-2 d-block mb-2"></i>
+                                Không có cảnh báo quá hạn nào phù hợp với điều kiện lọc.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</main>
+
+<!-- Modal Đánh Dấu Đã Nhắc Nhở -->
+<div class="modal fade" id="remindModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4">
+            <form method="post" action="/Admin/OverdueWarning/MarkReminded">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-dark">
+                        <i class="bi bi-bell-fill text-primary me-2"></i>Xác Nhận Đã Nhắc Nhở Quá Hạn
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="warningId" id="remindWarningId" />
+                    <div class="p-3 rounded-3 bg-light mb-3 small">
+                        <div><strong>Mã phiếu:</strong> <span id="remindTicketCode" class="text-primary fw-semibold"></span></div>
+                        <div><strong>Độc giả:</strong> <span id="remindReaderName" class="fw-semibold"></span></div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold small">Ghi chú nhắc nhở (tùy chọn)</label>
+                        <textarea name="reminderNote" class="form-control rounded-3" rows="3" placeholder="VD: Đã gọi điện / gửi email nhắc bạn đọc trả sách trong tuần này..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-3" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary rounded-3 fw-semibold">
+                        <i class="bi bi-check2-circle me-1"></i> Đánh dấu đã nhắc nhở
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openRemindModal(warningId, ticketCode, readerName) {
+        document.getElementById('remindWarningId').value = warningId;
+        document.getElementById('remindTicketCode').textContent = ticketCode;
+        document.getElementById('remindReaderName').textContent = readerName;
+    }
+</script>

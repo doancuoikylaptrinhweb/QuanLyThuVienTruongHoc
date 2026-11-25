@@ -58,6 +58,14 @@
                     <span>Lập phiếu mượn mới</span>
                 </a>
             </li>
+            <li class="nav-item mb-1">
+                <a class="nav-link @(currentCtrl == "OverdueWarning" ? "active text-white" : "text-secondary")" 
+                   href="/Admin/OverdueWarning"
+                   style="@(currentCtrl == "OverdueWarning" ? "background: #2563eb !important; border-radius: 10px; font-weight: 600;" : "border-radius: 10px; font-weight: 500;")">
+                    <i class="bi bi-exclamation-triangle me-2 @(currentCtrl == "OverdueWarning" ? "text-white" : "text-danger")"></i>
+                    <span>Cảnh báo quá hạn</span>
+                </a>
+            </li>
 
             <!-- KHO SÁCH & DỮ LIỆU -->
             <li class="nav-heading text-uppercase fw-bold text-muted px-3 mt-3 mb-1" style="font-size: 11px; letter-spacing: 0.6px;">KHO SÁCH & DỮ LIỆU</li>

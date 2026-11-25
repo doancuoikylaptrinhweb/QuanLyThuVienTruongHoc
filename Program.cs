@@ -75,6 +75,28 @@ try
 
             IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('tblAuthor') AND name = 'Bio')
                 ALTER TABLE [dbo].[tblAuthor] ADD [Bio] NVARCHAR(500) NULL;
+
+            IF OBJECT_ID('tblOverdueWarning', 'U') IS NULL
+            BEGIN
+                CREATE TABLE [dbo].[tblOverdueWarning] (
+                    [WarningID] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                    [TicketID] INT NOT NULL,
+                    [UserID] INT NOT NULL,
+                    [OverdueDays] INT NOT NULL DEFAULT 1,
+                    [SeverityLevel] NVARCHAR(30) NOT NULL DEFAULT N'Nhắc nhở',
+                    [OverdueBookCount] INT NOT NULL DEFAULT 1,
+                    [BookTitles] NVARCHAR(1000) NULL,
+                    [WarningStatus] NVARCHAR(50) NOT NULL DEFAULT N'Chưa nhắc nhở',
+                    [ReminderCount] INT NOT NULL DEFAULT 0,
+                    [LastRemindedDate] DATETIME NULL,
+                    [RemindedBy] NVARCHAR(100) NULL,
+                    [ReminderNote] NVARCHAR(500) NULL,
+                    [ResolvedDate] DATETIME NULL,
+                    [CreatedDate] DATETIME NOT NULL DEFAULT GETDATE(),
+                    [UpdatedDate] DATETIME NOT NULL DEFAULT GETDATE(),
+                    CONSTRAINT [UQ_tblOverdueWarning_TicketID] UNIQUE ([TicketID])
+                );
+            END
         ");
     }
 }
