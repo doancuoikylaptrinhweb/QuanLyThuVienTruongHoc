@@ -1,6 +1,6 @@
 ﻿-- =================================================================
 -- DỮ LIỆU CƠ SỞ DỮ LIỆU MỚI NHẤT: LibraryDB
--- Thời gian xuất tự động: 25/11/2026 14:57:15
+-- Thời gian xuất tự động: 25/11/2026 20:14:36
 -- Dự án: QuanLyThuVienTruongHoc (ASP.NET Core MVC)
 -- =================================================================
 USE [LibraryDB];
@@ -57,18 +57,19 @@ SET IDENTITY_INSERT [tblBook] OFF;
 GO
 
 -- -------------------------------------------------------------
--- Bảng: [tblUser] (8 bản ghi)
+-- Bảng: [tblUser] (9 bản ghi)
 -- -------------------------------------------------------------
 SET IDENTITY_INSERT [tblUser] ON;
-INSERT INTO [tblUser] ([UserID], [UserName], [FullName], [Email], [Password], [Role], [IsActive], [UserCode]) VALUES
-(1, N'docgia01', N'Nguyễn Văn An', N'an.nguyen@gmail.com', N'123456', N'Reader', 1, NULL),
-(2, N'docgia02', N'Trần Thị Mai', N'mai.tran@gmail.com', N'123456', N'Reader', 1, NULL),
-(4, N'Tai', N'Tai', N'tai@gmail.com', N'04122446ac673ab64ca79159060709ed', N'Reader', 1, NULL),
-(1013, N'admin', N'Nguyễn Quản Trị (Admin)', N'admin@thuvien.edu.vn', N'AQAAAAIAAYagAAAAEPmED+p4W2Ygp75u1mFX3+aIPOvwLeu1sN0bTNwkPzKGu8v8aLSTJbSRFYsFIb7UoA==', N'Admin', 1, NULL),
-(1014, N'Tai123', N'Nguyễn Hữu Tài', N'tai123@gmail.com', N'2a417fee7c18e2f58b645e032084e11a', N'Reader', 1, N'DG1014'),
-(1030, N'Ngan123', N'Lê Thị Ngân', N'ngan123@gmail.com', N'AQAAAAIAAYagAAAAEGBeQULQ0yLTWKHq8np4Eukpk+rcWm0nGwEQ0IZdl27at1LFm35YbcUNfYDXsZg4Tw==', N'Reader', 1, N'DG1030'),
-(1031, N'bobo12', N'Nguyễn Thị Bơ', N'bo12@gmail.com', N'AQAAAAIAAYagAAAAEOb0yKt8OQn3ct24lsiNedAvjApatnkq3zdJGHP4lcK1vDCpdQ7H3EFvBxfV+cvDKA==', N'Reader', 1, N'DG1031'),
-(1032, N'KimChi', N'Lê Kim Chi', N'kimchi123@gmail.com', N'AQAAAAIAAYagAAAAEGQdxjEDsWezGWs/QVuDcQ8O/fPyoTNj/XVJI0UjPZzxksdhOjapsHvMnpKUl3fSaw==', N'Reader', 1, N'DG1032');
+INSERT INTO [tblUser] ([UserID], [UserName], [FullName], [Email], [Password], [Role], [IsActive], [UserCode], [GoogleId], [AuthProvider]) VALUES
+(1, N'docgia01', N'Nguyễn Văn An', N'an.nguyen@gmail.com', N'123456', N'Reader', 1, NULL, NULL, NULL),
+(2, N'docgia02', N'Trần Thị Mai', N'mai.tran@gmail.com', N'123456', N'Reader', 1, NULL, NULL, NULL),
+(4, N'Tai', N'Tai', N'tai@gmail.com', N'04122446ac673ab64ca79159060709ed', N'Reader', 1, NULL, NULL, NULL),
+(1013, N'admin', N'Nguyễn Quản Trị (Admin)', N'admin@thuvien.edu.vn', N'AQAAAAIAAYagAAAAEPmED+p4W2Ygp75u1mFX3+aIPOvwLeu1sN0bTNwkPzKGu8v8aLSTJbSRFYsFIb7UoA==', N'Admin', 1, NULL, NULL, NULL),
+(1014, N'Tai123', N'Nguyễn Hữu Tài', N'tai123@gmail.com', N'2a417fee7c18e2f58b645e032084e11a', N'Reader', 1, N'DG1014', NULL, NULL),
+(1030, N'Ngan123', N'Lê Thị Ngân', N'ngan123@gmail.com', N'AQAAAAIAAYagAAAAEGBeQULQ0yLTWKHq8np4Eukpk+rcWm0nGwEQ0IZdl27at1LFm35YbcUNfYDXsZg4Tw==', N'Reader', 1, N'DG1030', NULL, NULL),
+(1031, N'bobo12', N'Nguyễn Thị Bơ', N'bo12@gmail.com', N'AQAAAAIAAYagAAAAEOb0yKt8OQn3ct24lsiNedAvjApatnkq3zdJGHP4lcK1vDCpdQ7H3EFvBxfV+cvDKA==', N'Reader', 1, N'DG1031', NULL, NULL),
+(1032, N'KimChi', N'Lê Kim Chi', N'kimchi123@gmail.com', N'AQAAAAIAAYagAAAAEGQdxjEDsWezGWs/QVuDcQ8O/fPyoTNj/XVJI0UjPZzxksdhOjapsHvMnpKUl3fSaw==', N'Reader', 1, N'DG1032', NULL, NULL),
+(1033, N'NgaHoang', N'Hoàng Thị Nga', N'ngahoang@gmail.com', N'AQAAAAIAAYagAAAAENtXIvI4iNx2AFLhIoDZX0wdOB19G9iiDHbBpJdkj+iUMtxVEwki8zJ5hD31xoBx8A==', N'Reader', 1, N'DG1033', NULL, NULL);
 SET IDENTITY_INSERT [tblUser] OFF;
 GO
 
