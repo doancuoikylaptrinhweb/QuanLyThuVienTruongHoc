@@ -1,6 +1,6 @@
 ﻿-- =================================================================
 -- DỮ LIỆU CƠ SỞ DỮ LIỆU MỚI NHẤT: LibraryDB
--- Thời gian xuất tự động: 25/11/2026 20:14:36
+-- Thời gian xuất tự động: 25/11/2026 20:31:22
 -- Dự án: QuanLyThuVienTruongHoc (ASP.NET Core MVC)
 -- =================================================================
 USE [LibraryDB];
