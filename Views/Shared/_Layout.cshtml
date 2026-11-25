@@ -382,10 +382,14 @@
     <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-                <div class="modal-header bg-primary text-white pb-3">
+                <!-- Modal Header: Phân biệt trực quan giữa Đăng Nhập & Đăng Ký -->
+                <div class="modal-header bg-primary text-white pb-3" id="authModalHeader">
                     <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-shield-lock-fill fs-4"></i>
-                        <h5 class="modal-title fw-bold mb-0" id="loginModalLabel">Cổng Xác Thực Bạn Đọc</h5>
+                        <i class="bi bi-shield-lock-fill fs-4" id="authModalIcon"></i>
+                        <div>
+                            <h5 class="modal-title fw-bold mb-0" id="loginModalLabel">Cổng Xác Thực Bạn Đọc</h5>
+                            <small class="text-white-50" id="authModalSubTitle" style="font-size: 12.5px;">Đăng nhập để tra cứu, mượn sách hoặc tạo tài khoản bạn đọc mới</small>
+                        </div>
                     </div>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -394,12 +398,12 @@
                     <!-- Nav Tabs Chọn Đăng Nhập hoặc Đăng Ký -->
                     <ul class="nav nav-pills nav-fill p-1 bg-light rounded-pill mb-4" id="authTab" role="tablist">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active rounded-pill fw-semibold py-2" id="tab-login-btn" data-bs-toggle="pill" data-bs-target="#tab-login" type="button" role="tab" aria-selected="true">
+                            <button class="nav-link active rounded-pill fw-semibold py-2" id="tab-login-btn" data-bs-toggle="pill" data-bs-target="#tab-login" type="button" role="tab" aria-selected="true" onclick="onSwitchAuthMode('login')">
                                 <i class="bi bi-box-arrow-in-right me-1"></i> Đăng Nhập
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link rounded-pill fw-semibold py-2" id="tab-register-btn" data-bs-toggle="pill" data-bs-target="#tab-register" type="button" role="tab" aria-selected="false">
+                            <button class="nav-link rounded-pill fw-semibold py-2" id="tab-register-btn" data-bs-toggle="pill" data-bs-target="#tab-register" type="button" role="tab" aria-selected="false" onclick="onSwitchAuthMode('register')">
                                 <i class="bi bi-person-plus me-1"></i> Đăng Ký Mới
                             </button>
                         </li>
@@ -415,7 +419,7 @@
                                     <label class="form-label fw-semibold small">Tên đăng nhập / Mã bạn đọc <span class="text-danger">*</span></label>
                                     <div class="input-group">
                                         <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-person"></i></span>
-                                        <input type="text" id="clientLoginUser" class="form-control border-start-0 ps-0" required placeholder="Ví dụ: docgia01, an.nguyen...">
+                                        <input type="text" id="clientLoginUser" class="form-control border-start-0 ps-0" required placeholder="Ví dụ: docgia01, DG0001...">
                                     </div>
                                 </div>
                                 <div class="mb-3">
@@ -445,43 +449,64 @@
 
                         <!-- TAB 2: ĐĂNG KÝ -->
                         <div class="tab-pane fade" id="tab-register" role="tabpanel">
+                            <!-- Hướng dẫn Quy trình tạo tài khoản 3 bước rõ ràng -->
+                            <div class="p-2 mb-3 rounded-3 border bg-light">
+                                <div class="d-flex align-items-center justify-content-between text-center" style="font-size: 11.5px;">
+                                    <div class="d-flex align-items-center gap-1 text-primary fw-bold" id="authStep1">
+                                        <span class="badge rounded-circle bg-primary text-white" style="width: 20px; height: 20px; line-height: 12px;">1</span>
+                                        <span>Khai báo</span>
+                                    </div>
+                                    <i class="bi bi-chevron-right text-muted"></i>
+                                    <div class="d-flex align-items-center gap-1 text-muted" id="authStep2">
+                                        <span class="badge rounded-circle bg-secondary text-white" style="width: 20px; height: 20px; line-height: 12px;">2</span>
+                                        <span>Cấp mã [DG]</span>
+                                    </div>
+                                    <i class="bi bi-chevron-right text-muted"></i>
+                                    <div class="d-flex align-items-center gap-1 text-muted" id="authStep3">
+                                        <span class="badge rounded-circle bg-secondary text-white" style="width: 20px; height: 20px; line-height: 12px;">3</span>
+                                        <span>Xác thực</span>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div id="registerAlert" class="alert d-none rounded-3 py-2 px-3 small"></div>
 
-                            <form id="clientRegisterForm" onsubmit="handleClientRegister(event)">
+                            <!-- Form Đăng Ký: Ngăn chặn triệt để tự động điền tài khoản khác -->
+                            <form id="clientRegisterForm" autocomplete="off" onsubmit="handleClientRegister(event)">
                                 <div class="mb-3">
-                                    <label class="form-label fw-semibold small">Họ và tên <span class="text-danger">*</span></label>
+                                    <label class="form-label fw-semibold small">Họ và tên bạn đọc <span class="text-danger">*</span></label>
                                     <div class="input-group">
                                         <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-card-text"></i></span>
-                                        <input type="text" id="regFullName" class="form-control border-start-0 ps-0" required placeholder="Ví dụ: Nguyễn Văn An">
+                                        <input type="text" id="regFullName" class="form-control border-start-0 ps-0" required autocomplete="off" placeholder="Ví dụ: Lê Thị Ngân">
                                     </div>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label fw-semibold small">Tên đăng nhập <span class="text-danger">*</span></label>
+                                    <label class="form-label fw-semibold small">Tên đăng nhập mới <span class="text-danger">*</span></label>
                                     <div class="input-group">
                                         <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-person-badge"></i></span>
-                                        <input type="text" id="regUserName" class="form-control border-start-0 ps-0" required placeholder="Tối thiểu 3 ký tự (ví dụ: annguyen)">
+                                        <input type="text" id="regUserName" class="form-control border-start-0 ps-0" required autocomplete="off" autocorrect="off" autocapitalize="none" placeholder="Tối thiểu 3 ký tự (chưa từng sử dụng)">
                                     </div>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label fw-semibold small">Email (tùy chọn)</label>
                                     <div class="input-group">
                                         <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-envelope"></i></span>
-                                        <input type="email" id="regEmail" class="form-control border-start-0 ps-0" placeholder="an.nguyen@sinhvien.edu.vn">
+                                        <input type="email" id="regEmail" class="form-control border-start-0 ps-0" autocomplete="off" placeholder="an.nguyen@sinhvien.edu.vn">
                                     </div>
                                 </div>
                                 <div class="row g-2 mb-3">
                                     <div class="col-sm-6">
-                                        <label class="form-label fw-semibold small">Mật khẩu <span class="text-danger">*</span></label>
+                                        <label class="form-label fw-semibold small">Mật khẩu mới <span class="text-danger">*</span></label>
                                         <div class="input-group">
                                             <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-lock"></i></span>
-                                            <input type="password" id="regPassword" class="form-control border-start-0 ps-0" required placeholder="Tối thiểu 6 ký tự">
+                                            <input type="password" id="regPassword" class="form-control border-start-0 ps-0" required autocomplete="new-password" placeholder="Tối thiểu 6 ký tự">
                                         </div>
                                     </div>
                                     <div class="col-sm-6">
                                         <label class="form-label fw-semibold small">Nhập lại mật khẩu <span class="text-danger">*</span></label>
                                         <div class="input-group">
                                             <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-check2-circle"></i></span>
-                                            <input type="password" id="regConfirmPassword" class="form-control border-start-0 ps-0" required placeholder="Xác nhận lại">
+                                            <input type="password" id="regConfirmPassword" class="form-control border-start-0 ps-0" required autocomplete="new-password" placeholder="Xác nhận lại">
                                         </div>
                                     </div>
                                 </div>
@@ -491,7 +516,43 @@
                                 </button>
                             </form>
 
-                            <div class="text-center mt-3 small text-muted">
+                            <!-- Khối hiển thị Trạng Thái Xác Thực & Cấp Mã Thành Công -->
+                            <div id="registerSuccessBox" class="d-none text-center py-2">
+                                <div class="rounded-circle bg-success-subtle text-success d-inline-flex align-items-center justify-content-center mb-3" style="width: 54px; height: 54px; font-size: 28px;">
+                                    <i class="bi bi-patch-check-fill"></i>
+                                </div>
+                                <h5 class="fw-bold text-success mb-1">Xác Thực &amp; Tạo Tài Khoản Thành Công!</h5>
+                                <p class="text-muted small mb-3">Hệ thống đã cấp mã bạn đọc và tự động xác thực phiên đăng nhập.</p>
+
+                                <div class="bg-light border rounded-4 p-3 text-start small mb-3">
+                                    <div class="d-flex justify-content-between align-items-center pb-2 border-bottom mb-2">
+                                        <span class="text-muted">Mã Bạn Đọc (User Code):</span>
+                                        <strong class="text-primary font-monospace fs-6" id="cardUserCode">DG0000</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center pb-2 border-bottom mb-2">
+                                        <span class="text-muted">Họ và tên:</span>
+                                        <strong class="text-dark" id="cardFullName">...</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center pb-2 border-bottom mb-2">
+                                        <span class="text-muted">Tên đăng nhập:</span>
+                                        <strong class="text-dark" id="cardUserName">...</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center pb-2 border-bottom mb-2">
+                                        <span class="text-muted">Phân quyền hệ thống:</span>
+                                        <span class="badge bg-primary-subtle text-primary border" id="cardRole">Độc giả (Reader)</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="text-muted">Trạng thái tài khoản:</span>
+                                        <span class="badge bg-success-subtle text-success border"><i class="bi bi-check-circle-fill me-1"></i> Đã kích hoạt (Active)</span>
+                                    </div>
+                                </div>
+
+                                <a href="/" class="btn btn-primary rounded-pill w-100 py-2 fw-semibold shadow-sm">
+                                    <i class="bi bi-book-half me-1"></i> Bắt Đầu Tra Cứu &amp; Mượn Sách
+                                </a>
+                            </div>
+
+                            <div class="text-center mt-3 small text-muted" id="alreadyHaveAccountText">
                                 Đã có tài khoản bạn đọc? 
                                 <a href="javascript:void(0)" onclick="switchAuthTab('login')" class="text-primary fw-semibold text-decoration-none ms-1">Đăng nhập ngay</a>
                             </div>
@@ -601,7 +662,70 @@
             var modalEl = document.getElementById('loginModal');
             var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
             modal.show();
-            switchAuthTab(mode);
+            switchAuthTab(mode || 'login');
+        }
+
+        // Chuyển đổi giao diện và thông tin theo chế độ Đăng Nhập hoặc Đăng Ký
+        function onSwitchAuthMode(mode) {
+            var header = document.getElementById("authModalHeader");
+            var title = document.getElementById("loginModalLabel");
+            var sub = document.getElementById("authModalSubTitle");
+            var icon = document.getElementById("authModalIcon");
+
+            if (mode === 'register') {
+                if (header) {
+                    header.className = "modal-header text-white pb-3";
+                    header.style.background = "linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)";
+                }
+                if (title) title.textContent = "Đăng Ký Tài Khoản Bạn Đọc";
+                if (sub) sub.textContent = "Cấp mã thẻ thư viện & kích hoạt quyền mượn sách trực tuyến";
+                if (icon) icon.className = "bi bi-person-plus-fill fs-4";
+                clearRegisterForm();
+                setTimeout(clearRegisterForm, 60);
+            } else {
+                if (header) {
+                    header.className = "modal-header bg-primary text-white pb-3";
+                    header.style.background = "";
+                }
+                if (title) title.textContent = "Cổng Xác Thực Bạn Đọc";
+                if (sub) sub.textContent = "Đăng nhập để tra cứu, mượn sách hoặc theo dõi phiếu mượn";
+                if (icon) icon.className = "bi bi-shield-lock-fill fs-4";
+            }
+        }
+
+        // Xóa trắng form đăng ký, ngăn trình duyệt tự động điền tài khoản khác
+        function clearRegisterForm() {
+            var f = document.getElementById("clientRegisterForm");
+            if (f) f.reset();
+            var fn = document.getElementById("regFullName"); if (fn) fn.value = "";
+            var un = document.getElementById("regUserName"); if (un) un.value = "";
+            var em = document.getElementById("regEmail"); if (em) em.value = "";
+            var pw = document.getElementById("regPassword"); if (pw) pw.value = "";
+            var cpw = document.getElementById("regConfirmPassword"); if (cpw) cpw.value = "";
+            var alertBox = document.getElementById("registerAlert"); if (alertBox) alertBox.classList.add("d-none");
+            var successBox = document.getElementById("registerSuccessBox"); if (successBox) successBox.classList.add("d-none");
+            if (f) f.classList.remove("d-none");
+            var alreadyText = document.getElementById("alreadyHaveAccountText"); if (alreadyText) alreadyText.classList.remove("d-none");
+            resetAuthSteps();
+        }
+
+        // Thiết lập lại tiến trình các bước đăng ký
+        function resetAuthSteps() {
+            var s1 = document.getElementById("authStep1");
+            var s2 = document.getElementById("authStep2");
+            var s3 = document.getElementById("authStep3");
+            if (s1) {
+                s1.className = "d-flex align-items-center gap-1 text-primary fw-bold";
+                var b1 = s1.querySelector(".badge"); if (b1) b1.className = "badge rounded-circle bg-primary text-white";
+            }
+            if (s2) {
+                s2.className = "d-flex align-items-center gap-1 text-muted";
+                var b2 = s2.querySelector(".badge"); if (b2) b2.className = "badge rounded-circle bg-secondary text-white";
+            }
+            if (s3) {
+                s3.className = "d-flex align-items-center gap-1 text-muted";
+                var b3 = s3.querySelector(".badge"); if (b3) b3.className = "badge rounded-circle bg-secondary text-white";
+            }
         }
 
         // Chuyển đổi qua lại giữa tab Đăng Nhập và Đăng Ký
@@ -612,14 +736,32 @@
                     var trigger = new bootstrap.Tab(regBtn);
                     trigger.show();
                 }
+                onSwitchAuthMode('register');
             } else {
                 var loginBtn = document.getElementById('tab-login-btn');
                 if (loginBtn) {
                     var trigger = new bootstrap.Tab(loginBtn);
                     trigger.show();
                 }
+                onSwitchAuthMode('login');
             }
         }
+
+        // Đăng ký sự kiện reset khi mở Modal
+        document.addEventListener("DOMContentLoaded", function() {
+            var authModalEl = document.getElementById('loginModal');
+            if (authModalEl) {
+                authModalEl.addEventListener('show.bs.modal', function() {
+                    clearRegisterForm();
+                });
+                authModalEl.addEventListener('shown.bs.modal', function() {
+                    var regTab = document.getElementById('tab-register');
+                    if (regTab && regTab.classList.contains('active')) {
+                        clearRegisterForm();
+                    }
+                });
+            }
+        });
 
         // Xử lý đăng ký tài khoản từ trang chủ khách
         function handleClientRegister(e) {
@@ -635,13 +777,26 @@
             alertBox.className = "alert alert-danger d-none rounded-3 py-2 px-3 small";
 
             if (password !== confirmPassword) {
-                alertBox.textContent = "Mật khẩu xác nhận không khớp!";
+                alertBox.textContent = "Mật khẩu xác nhận không khớp! Vui lòng nhập lại.";
+                alertBox.classList.remove("d-none");
+                return;
+            }
+
+            if (password.length < 6) {
+                alertBox.textContent = "Mật khẩu phải có độ dài tối thiểu 6 ký tự!";
                 alertBox.classList.remove("d-none");
                 return;
             }
 
             btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang tạo tài khoản...';
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang xử lý & cấp mã...';
+
+            // Tiến trình bước 2: Đang cấp mã
+            var s2 = document.getElementById("authStep2");
+            if (s2) {
+                s2.className = "d-flex align-items-center gap-1 text-primary fw-bold";
+                var b2 = s2.querySelector(".badge"); if (b2) b2.className = "badge rounded-circle bg-primary text-white";
+            }
 
             var formData = new FormData();
             formData.append("fullName", fullName);
@@ -657,13 +812,31 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    alertBox.className = "alert alert-success rounded-3 py-2 px-3 small";
-                    alertBox.textContent = data.message || "Đăng ký thành công! Đang chuyển hướng...";
-                    alertBox.classList.remove("d-none");
+                    // Tiến trình bước 3: Xác thực thành công
+                    var s3 = document.getElementById("authStep3");
+                    if (s3) {
+                        s3.className = "d-flex align-items-center gap-1 text-success fw-bold";
+                        var b3 = s3.querySelector(".badge"); if (b3) b3.className = "badge rounded-circle bg-success text-white";
+                    }
+
+                    // Ẩn form và hiển thị Card trạng thái xác thực tài khoản
+                    document.getElementById("clientRegisterForm").classList.add("d-none");
+                    var alreadyText = document.getElementById("alreadyHaveAccountText");
+                    if (alreadyText) alreadyText.classList.add("d-none");
+
+                    document.getElementById("cardUserCode").textContent = data.userCode || "DG0001";
+                    document.getElementById("cardFullName").textContent = data.fullName || fullName;
+                    document.getElementById("cardUserName").textContent = data.userName || userName;
+                    document.getElementById("cardRole").textContent = data.role || "Độc giả (Reader)";
+
+                    var successBox = document.getElementById("registerSuccessBox");
+                    if (successBox) successBox.classList.remove("d-none");
+
                     setTimeout(() => {
                         window.location.href = data.redirectUrl || '/';
-                    }, 1200);
+                    }, 2600);
                 } else {
+                    resetAuthSteps();
                     alertBox.className = "alert alert-danger rounded-3 py-2 px-3 small";
                     alertBox.textContent = data.message || "Đăng ký thất bại, vui lòng thử lại!";
                     alertBox.classList.remove("d-none");
@@ -672,8 +845,9 @@
                 }
             })
             .catch(err => {
+                resetAuthSteps();
                 alertBox.className = "alert alert-danger rounded-3 py-2 px-3 small";
-                alertBox.textContent = "Có lỗi kết nối, vui lòng thử lại!";
+                alertBox.textContent = "Có lỗi kết nối máy chủ, vui lòng thử lại!";
                 alertBox.classList.remove("d-none");
                 btn.disabled = false;
                 btn.innerHTML = '<i class="bi bi-person-check me-1"></i> Hoàn Tất Đăng Ký';

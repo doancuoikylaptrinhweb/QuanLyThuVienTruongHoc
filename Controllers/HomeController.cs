@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using System.Text;
+using System.Globalization;
 using LibraryManagement.Models;
 using LibraryManagement.Utilities;
 
@@ -16,35 +19,75 @@ namespace LibraryManagement.Controllers
             _context = context;
         }
 
-        // 1. TRANG CHỦ & TRA CỨU SÁCH TRỰC TUYẾN (DỮ LIỆU 100% TRUY VẤN TỪ DATABASE)
+        // =====================================================================
+        // 1. TRANG CHỦ & TRA CỨU SÁCH
+        // =====================================================================
         public IActionResult Index(string? searchString, int? categoryId)
         {
-            var booksQuery = _context.Books.Where(b => b.IsActive == true);
+            // Lấy tất cả sách đang kích hoạt kèm tác giả về memory để tránh lỗi
+            // SQL Server ntext không hỗ trợ LOWER() / Contains() trong EF LINQ trực tiếp.
+            var allActiveBooks = _context.Books
+                .Include(b => b.Author)
+                .Where(b => b.IsActive == true)
+                .OrderByDescending(b => b.BookID)
+                .ToList(); // ← chuyển về memory tại đây
 
-            // Lọc theo từ khóa tìm kiếm (hỗ trợ tìm theo tên sách, tóm tắt, hoặc mã sách như MS0001)
-            if (!string.IsNullOrWhiteSpace(searchString))
-            {
-                string term = searchString.Trim().ToLower();
-                booksQuery = booksQuery.Where(b => 
-                    (b.Title != null && b.Title.ToLower().Contains(term)) ||
-                    (b.Summary != null && b.Summary.ToLower().Contains(term)) ||
-                    (b.BookCode != null && b.BookCode.ToLower().Contains(term)) ||
-                    (b.Contents != null && b.Contents.ToLower().Contains(term))
-                );
-                ViewBag.SearchString = searchString;
-            }
-
-            // Lọc theo thể loại sách
+            // Lọc category TRƯỚC khi tìm kiếm để thu hẹp tập hợp
             if (categoryId.HasValue && categoryId.Value > 0)
             {
-                booksQuery = booksQuery.Where(b => b.CategoryID == categoryId.Value);
+                allActiveBooks = allActiveBooks
+                    .Where(b => b.CategoryID == categoryId.Value)
+                    .ToList();
                 ViewBag.SelectedCategory = categoryId.Value;
             }
 
-            var allBooks = booksQuery.OrderByDescending(b => b.BookID).ToList();
+            // Tìm kiếm IN-MEMORY: hỗ trợ tiếng Việt có dấu, không phân biệt hoa/thường,
+            // không bị lỗi ntext vì xử lý hoàn toàn phía .NET.
+            if (!string.IsNullOrWhiteSpace(searchString))
+            {
+                var termNorm = NormalizeString(searchString); // bỏ dấu, lowercase
+                var termRaw  = searchString.Trim().ToLowerInvariant(); // giữ dấu, lowercase
 
-            // Toàn bộ danh mục và tác giả lấy 100% từ Database
-            var categories = _context.Categories.Where(c => c.IsActive == true).OrderBy(c => c.CategoryID).ToList();
+                allActiveBooks = allActiveBooks.Where(b =>
+                {
+                    // Tìm theo tên sách
+                    if (b.Title != null)
+                    {
+                        if (b.Title.ToLowerInvariant().Contains(termRaw)) return true;
+                        if (NormalizeString(b.Title).Contains(termNorm))  return true;
+                    }
+                    // Tìm theo mã sách (MS0001...)
+                    if (b.BookCode != null &&
+                        b.BookCode.ToLowerInvariant().Contains(termRaw))   return true;
+                    // Tìm theo tóm tắt / mô tả
+                    if (b.Summary != null)
+                    {
+                        if (b.Summary.ToLowerInvariant().Contains(termRaw)) return true;
+                        if (NormalizeString(b.Summary).Contains(termNorm))  return true;
+                    }
+                    // Tìm theo nội dung
+                    if (b.Contents != null &&
+                        b.Contents.ToLowerInvariant().Contains(termRaw))    return true;
+                    // Tìm theo tên tác giả
+                    if (b.Author?.AuthorName != null)
+                    {
+                        if (b.Author.AuthorName.ToLowerInvariant().Contains(termRaw)) return true;
+                        if (NormalizeString(b.Author.AuthorName).Contains(termNorm))  return true;
+                    }
+                    return false;
+                }).ToList();
+
+                ViewBag.SearchString = searchString;
+            }
+
+            var allBooks = allActiveBooks;
+
+            // Danh mục và tác giả từ Database
+            var categories = _context.Categories
+                .Where(c => c.IsActive == true)
+                .OrderBy(c => c.CategoryID)
+                .ToList();
+
             var categoryBookCounts = _context.Books
                 .Where(b => b.IsActive == true && b.CategoryID > 0)
                 .GroupBy(b => b.CategoryID)
@@ -54,7 +97,7 @@ namespace LibraryManagement.Controllers
             ViewBag.CategoryBookCounts = categoryBookCounts;
             ViewBag.Authors = _context.Authors.ToDictionary(a => a.AuthorID, a => a.AuthorName ?? "Chưa rõ");
 
-            // Chỉ số thống kê thời gian thực từ Database
+            // Thống kê
             ViewBag.TotalBooks = _context.Books.Count(b => b.IsActive == true);
             ViewBag.TotalCopies = _context.Books.Where(b => b.IsActive == true).Sum(b => (int?)b.Quantity) ?? 0;
             ViewBag.TotalReaders = _context.Users.Count(u => u.Role == "Reader" && u.IsActive == true);
@@ -62,7 +105,34 @@ namespace LibraryManagement.Controllers
             return View(allBooks);
         }
 
-        // 2. XEM CHI TIẾT SÁCH (100% TỪ DATABASE)
+        // =====================================================================
+        // Helper: Chuẩn hóa chuỗi (loại bỏ dấu, lowercase)
+        // =====================================================================
+        private static string NormalizeString(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input)) return string.Empty;
+            var normalized = input.Trim().ToLowerInvariant().Normalize(NormalizationForm.FormD);
+            var sb = new StringBuilder();
+            foreach (var ch in normalized)
+            {
+                var uc = CharUnicodeInfo.GetUnicodeCategory(ch);
+                if (uc != UnicodeCategory.NonSpacingMark)
+                {
+                    sb.Append(ch);
+                }
+            }
+            return sb.ToString().Normalize(NormalizationForm.FormC);
+        }
+
+        // Helper: Escape ký tự đặc biệt trong SQL LIKE
+        private static string EscapeLike(string pattern)
+        {
+            return pattern.Replace("[", "[[]").Replace("%", "[%]").Replace("_", "[_]");
+        }
+
+        // =====================================================================
+        // 2. XEM CHI TIẾT SÁCH
+        // =====================================================================
         [Route("/sach-{slug}-{id:long}.html", Name = "BookDetails")]
         public IActionResult Details(long? id)
         {
@@ -77,7 +147,6 @@ namespace LibraryManagement.Controllers
                 return NotFound();
             }
 
-            // Thông tin Tác giả, Thể loại, NXB từ Database
             ViewBag.Category = _context.Categories.Find(book.CategoryID);
             ViewBag.Author = _context.Authors.Find(book.AuthorID);
             ViewBag.Publisher = _context.Publishers.Find(book.PublisherID);
@@ -85,7 +154,9 @@ namespace LibraryManagement.Controllers
             return View(book);
         }
 
-        // 3. XỬ LÝ CHATBOT VÀ HỖ TRỢ AI (TRA CỨU TRỰC TIẾP TỪ DATABASE)
+        // =====================================================================
+        // 3. CHATBOT
+        // =====================================================================
         [HttpPost]
         public IActionResult ChatBot(string message)
         {
@@ -96,43 +167,29 @@ namespace LibraryManagement.Controllers
 
             string msg = message.ToLower().Trim();
 
-            // 1. Chào hỏi
             if (msg.Contains("chào") || msg.Contains("hello") || msg.Contains("hi") || msg.Contains("bạn là ai"))
             {
-                return Json(new { 
-                    reply = "Xin chào bạn! Tôi là <strong>Trợ lý AI Thư Viện</strong>. Tôi có thể hỗ trợ bạn tìm nhanh vị trí sách trên kệ, gợi ý sách chuyên ngành và hướng dẫn quy định mượn/trả sách trực tuyến 24/7!" 
+                return Json(new
+                {
+                    reply = "Xin chào bạn! Tôi là <strong>Trợ lý AI Thư Viện</strong>. Tôi có thể hỗ trợ bạn tìm nhanh vị trí sách trên kệ, gợi ý sách chuyên ngành và hướng dẫn quy định mượn/trả sách trực tuyến 24/7!"
                 });
             }
 
-            // 2. Hỏi về thủ tục & quy định mượn sách
             if (msg.Contains("mượn") || msg.Contains("hạn") || msg.Contains("trả") || msg.Contains("thủ tục") || msg.Contains("quy định"))
             {
-                return Json(new { 
+                return Json(new
+                {
                     reply = "📚 <strong>Quy định mượn sách thư viện:</strong><br/>" +
                             "• Thời hạn mượn: Tối đa <strong>14 ngày</strong> / lượt.<br/>" +
                             "• Số lượng: Tối đa <strong>3 cuốn sách</strong> cùng một thời điểm.<br/>" +
-                            "• Gia hạn: Bạn có thể bấm nút <em>'Phiếu mượn của tôi'</em> trên thanh menu để gia hạn trực tuyến thêm 7 ngày!" 
+                            "• Gia hạn: Bạn có thể bấm nút <em>'Phiếu mượn của tôi'</em> trên thanh menu để gia hạn trực tuyến thêm 7 ngày!"
                 });
             }
 
-            // 3. Tra cứu sách thực tế trong CSDL
             var activeBooks = _context.Books.Where(b => b.IsActive == true).ToList();
             var authors = _context.Authors.ToDictionary(a => a.AuthorID, a => a.AuthorName ?? "Chưa rõ");
 
-            // Tìm sách phù hợp với câu hỏi trong CSDL
             var matched = activeBooks.FirstOrDefault(b => b.Title != null && msg.Contains(b.Title.ToLower()));
-            if (matched == null && msg.Contains("clean code"))
-            {
-                matched = activeBooks.FirstOrDefault(b => b.Title != null && b.Title.ToLower().Contains("clean code"));
-            }
-            if (matched == null && msg.Contains("harry potter"))
-            {
-                matched = activeBooks.FirstOrDefault(b => b.Title != null && b.Title.ToLower().Contains("harry potter"));
-            }
-            if (matched == null && msg.Contains("mắt biếc"))
-            {
-                matched = activeBooks.FirstOrDefault(b => b.Title != null && b.Title.ToLower().Contains("mắt biếc"));
-            }
 
             if (matched != null)
             {
@@ -158,12 +215,15 @@ namespace LibraryManagement.Controllers
                 }
             }
 
-            return Json(new { 
-                reply = "Tôi đã ghi nhận câu hỏi của bạn. Bạn có thể hỏi tôi về: <em>'Gợi ý sách'</em>, <em>'Quy định mượn sách'</em> hoặc gõ tên sách để được trợ giúp ngay!" 
+            return Json(new
+            {
+                reply = "Tôi đã ghi nhận câu hỏi của bạn. Bạn có thể hỏi tôi về: <em>'Gợi ý sách'</em>, <em>'Quy định mượn sách'</em> hoặc gõ tên sách để được trợ giúp ngay!"
             });
         }
 
-        // 4. ĐĂNG NHẬP DÀNH CHO BẠN ĐỌC / KHÁCH TRUY CẬP (Cookie Authentication + PasswordHasher)
+        // =====================================================================
+        // 4. ĐĂNG NHẬP
+        // =====================================================================
         [HttpPost]
         public async Task<IActionResult> Login(string userName, string password)
         {
@@ -173,7 +233,7 @@ namespace LibraryManagement.Controllers
             }
 
             string inputUserName = userName.Trim();
-            var check = _context.Users.FirstOrDefault(u => 
+            var check = _context.Users.FirstOrDefault(u =>
                 (u.UserName != null && u.UserName.ToLower() == inputUserName.ToLower()) ||
                 (u.UserCode != null && u.UserCode.ToLower() == inputUserName.ToLower())
             );
@@ -188,14 +248,12 @@ namespace LibraryManagement.Controllers
                 return Json(new { success = false, message = "Tài khoản của bạn hiện đang bị khóa!" });
             }
 
-            // Kiểm tra mật khẩu an toàn bằng PasswordHasher (PBKDF2) hoặc tương thích MD5 cũ
             bool isValid = PasswordSecurity.VerifyPassword(check, check.Password, password, out bool needRehash);
             if (!isValid)
             {
                 return Json(new { success = false, message = "Tên đăng nhập hoặc mật khẩu không chính xác!" });
             }
 
-            // Tự động nâng cấp hash mật khẩu nếu người dùng dùng mật khẩu cũ
             if (needRehash)
             {
                 try
@@ -206,7 +264,6 @@ namespace LibraryManagement.Controllers
                 catch { }
             }
 
-            // Thiết lập Cookie Claims
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, check.UserID.ToString()),
@@ -230,23 +287,22 @@ namespace LibraryManagement.Controllers
                 authProperties
             );
 
-            // Cập nhật fallback để tương thích các chức năng cũ
             Functions._UserID = check.UserID;
             Functions._UserName = check.FullName ?? check.UserName;
             Functions._Email = check.Email ?? string.Empty;
             Functions._Role = check.Role ?? "Reader";
 
-            // Nếu là tài khoản Admin / Thủ thư -> chuyển hướng vào trang quản trị /Admin
             if (check.Role == "Admin" || check.Role == "Librarian")
             {
                 return Json(new { success = true, redirectUrl = "/Admin", isAdmin = true });
             }
 
-            // Nếu là Độc giả bình thường -> ở lại trang chủ độc giả
             return Json(new { success = true, redirectUrl = "/", isAdmin = false });
         }
 
-        // 5. ĐĂNG KÝ TÀI KHOẢN BẠN ĐỌC MỚI
+        // =====================================================================
+        // 5. ĐĂNG KÝ TÀI KHOẢN
+        // =====================================================================
         [HttpPost]
         public async Task<IActionResult> Register(string userName, string fullName, string email, string password, string confirmPassword)
         {
@@ -271,14 +327,12 @@ namespace LibraryManagement.Controllers
                 return Json(new { success = false, message = "Mật khẩu xác nhận không khớp!" });
             }
 
-            // Kiểm tra trùng username
             var existingUser = _context.Users.FirstOrDefault(u => u.UserName != null && u.UserName.ToLower() == userName.ToLower());
             if (existingUser != null)
             {
                 return Json(new { success = false, message = "Tên đăng nhập này đã được sử dụng! Vui lòng chọn tên khác." });
             }
 
-            // Kiểm tra trùng email nếu có nhập
             if (!string.IsNullOrWhiteSpace(email))
             {
                 email = email.Trim();
@@ -298,7 +352,6 @@ namespace LibraryManagement.Controllers
                 IsActive = true
             };
 
-            // Băm mật khẩu bằng PasswordHasher (PBKDF2 HMAC-SHA256)
             newUser.Password = PasswordSecurity.HashPassword(newUser, password);
 
             try
@@ -306,7 +359,6 @@ namespace LibraryManagement.Controllers
                 _context.Users.Add(newUser);
                 _context.SaveChanges();
 
-                // Tự động gán Mã bạn đọc chuẩn: DG0001
                 if (string.IsNullOrWhiteSpace(newUser.UserCode))
                 {
                     newUser.UserCode = $"DG{newUser.UserID:D4}";
@@ -314,7 +366,6 @@ namespace LibraryManagement.Controllers
                     _context.SaveChanges();
                 }
 
-                // Tự động ký Cookie Authentication cho bạn đọc mới đăng ký
                 var claims = new List<Claim>
                 {
                     new Claim(ClaimTypes.NameIdentifier, newUser.UserID.ToString()),
@@ -336,7 +387,17 @@ namespace LibraryManagement.Controllers
                 Functions._Email = newUser.Email ?? string.Empty;
                 Functions._Role = "Reader";
 
-                return Json(new { success = true, message = "Đăng ký tài khoản thành công!", redirectUrl = "/" });
+                return Json(new
+                {
+                    success = true,
+                    message = "Đăng ký tài khoản thành công!",
+                    redirectUrl = "/",
+                    userCode = newUser.UserCode ?? newUser.Code,
+                    fullName = newUser.FullName ?? newUser.UserName,
+                    userName = newUser.UserName,
+                    role = "Độc giả (Reader)",
+                    status = "Đã xác thực & Kích hoạt"
+                });
             }
             catch (Exception ex)
             {
@@ -345,7 +406,9 @@ namespace LibraryManagement.Controllers
             }
         }
 
-        // 6. ĐĂNG XUẤT CHO BẠN ĐỌC TRÊN TRANG CHỦ (Cookie Authentication)
+        // =====================================================================
+        // 6. ĐĂNG XUẤT
+        // =====================================================================
         public async Task<IActionResult> Logout()
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
@@ -353,7 +416,9 @@ namespace LibraryManagement.Controllers
             return RedirectToAction("Index", "Home");
         }
 
-        // 7. TRA CỨU PHIẾU MƯỢN / PHIẾU TRẢ BẰNG MÃ
+        // =====================================================================
+        // 7. TRA CỨU PHIẾU MƯỢN
+        // =====================================================================
         [HttpGet]
         public IActionResult SearchTicket(string? keyword)
         {
@@ -373,14 +438,12 @@ namespace LibraryManagement.Controllers
             int parsedTicketId = 0;
             bool isNumeric = int.TryParse(term, out parsedTicketId);
 
-            // Tìm người dùng phù hợp
             var matchedUserIds = _context.Users
                 .Where(u => (u.FullName != null && u.FullName.ToLower().Contains(term)) ||
                             (u.UserName != null && u.UserName.ToLower().Contains(term)) ||
                             (u.UserCode != null && u.UserCode.ToLower().Contains(term)))
                 .Select(u => u.UserID).ToList();
 
-            // Tìm sách phù hợp
             var matchedBookIds = _context.Books
                 .Where(b => (b.Title != null && b.Title.ToLower().Contains(term)) ||
                             (b.BookCode != null && b.BookCode.ToLower().Contains(term)))
@@ -413,12 +476,14 @@ namespace LibraryManagement.Controllers
             var books = _context.Books.Where(b => bookIds.Contains(b.BookID)).ToDictionary(b => b.BookID, b => b);
             var users = _context.Users.ToDictionary(u => u.UserID, u => u);
 
-            var result = tickets.Select(t => {
+            var result = tickets.Select(t =>
+            {
                 var detail = details.FirstOrDefault(d => d.TicketID == t.TicketID);
                 var book = detail != null && books.ContainsKey(detail.BookID) ? books[detail.BookID] : null;
                 var user = users.ContainsKey(t.UserID) ? users[t.UserID] : null;
 
-                return new {
+                return new
+                {
                     ticketId = t.TicketID,
                     ticketCode = t.Code,
                     returnCode = t.DisplayReturnCode,
