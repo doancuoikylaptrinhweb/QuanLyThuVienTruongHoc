@@ -247,33 +247,33 @@
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form asp-area="Admin" asp-controller="User" asp-action="Create" method="post">
+            <form asp-area="Admin" asp-controller="User" asp-action="Create" method="post" autocomplete="off">
                 <div class="modal-body p-4">
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Mã người dùng / Mã độc giả (tùy chọn)</label>
-                        <input type="text" name="UserCode" class="form-control" placeholder="Ví dụ: DG0001, TT0001, AD0001 (Tự động sinh nếu để trống)" />
+                        <input type="text" name="UserCode" class="form-control" autocomplete="off" placeholder="Ví dụ: DG0001, TT0001, AD0001 (Tự động sinh nếu để trống)" />
                         <small class="text-muted">Độc giả sinh viên: <code>DG...</code> | Thủ thư: <code>TT...</code> | Quản trị: <code>AD...</code></small>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Tên đăng nhập (Username) <span class="text-danger">*</span></label>
-                        <input type="text" name="UserName" class="form-control" required placeholder="Ví dụ: admin02, thuthu_mai, sinhvien_nam" />
+                        <input type="text" name="UserName" class="form-control" required autocomplete="off" placeholder="Ví dụ: thuthu_mai, sinhvien_nam" />
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Họ và tên đầy đủ <span class="text-danger">*</span></label>
-                        <input type="text" name="FullName" class="form-control" required placeholder="Ví dụ: Nguyễn Văn An" />
+                        <input type="text" name="FullName" class="form-control" required autocomplete="off" placeholder="Ví dụ: Nguyễn Văn An" />
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Địa chỉ Email</label>
-                        <input type="email" name="Email" class="form-control" placeholder="Ví dụ: admin@thuvien.edu.vn" />
+                        <input type="email" name="Email" class="form-control" autocomplete="off" placeholder="Ví dụ: user@thuvien.edu.vn" />
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Mật khẩu khởi tạo <span class="text-danger">*</span></label>
-                        <input type="password" name="Password" class="form-control" required value="123456" />
-                        <small class="text-muted">Mặc định ban đầu: <code>123456</code> (sẽ tự động mã hóa MD5)</small>
+                        <input type="password" name="Password" class="form-control" required autocomplete="new-password" placeholder="Nhập mật khẩu khởi tạo (tối thiểu 6 ký tự)" />
+                        <small class="text-muted">Mật khẩu sẽ được mã hóa bảo mật tự động bằng chuẩn PBKDF2 Identity</small>
                     </div>
 
                     <div class="mb-3">
@@ -295,3 +295,21 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var modalEl = document.getElementById("createUserModal");
+        if (modalEl) {
+            modalEl.addEventListener("show.bs.modal", function() {
+                var form = modalEl.querySelector("form");
+                if (form) {
+                    form.reset();
+                    var pwd = form.querySelector("input[name='Password']");
+                    if (pwd) pwd.value = "";
+                    var usr = form.querySelector("input[name='UserName']");
+                    if (usr) usr.value = "";
+                }
+            });
+        }
+    });
+</script>

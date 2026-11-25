@@ -35,25 +35,25 @@
                     <p class="text-center small">Nhập thông tin cá nhân của bạn để đăng ký</p>
                   </div>
 
-                  <form class="row g-3" method="post" asp-area="Admin" asp-controller="Register" asp-action="Index">
+                  <form class="row g-3" method="post" asp-area="Admin" asp-controller="Register" asp-action="Index" autocomplete="off">
                     <div class="col-12">
                       <label class="form-label">Họ và tên</label>
-                      <input type="text" class="form-control" asp-for="FullName" required placeholder="Nguyễn Văn A">
+                      <input type="text" class="form-control" asp-for="FullName" required autocomplete="off" placeholder="Nguyễn Văn A">
                     </div>
 
                     <div class="col-12">
                       <label class="form-label">Email</label>
-                      <input type="email" class="form-control" asp-for="Email" required placeholder="email@example.com">
+                      <input type="email" class="form-control" asp-for="Email" required autocomplete="off" placeholder="email@example.com">
                     </div>
 
                     <div class="col-12">
                       <label class="form-label">Tên đăng nhập</label>
-                      <input type="text" class="form-control" asp-for="UserName" required placeholder="Tên tài khoản">
+                      <input type="text" class="form-control" asp-for="UserName" required autocomplete="off" placeholder="Tên tài khoản">
                     </div>
 
                     <div class="col-12">
                       <label class="form-label">Mật khẩu</label>
-                      <input type="password" class="form-control" asp-for="Password" required placeholder="Mật khẩu">
+                      <input type="password" class="form-control" asp-for="Password" required autocomplete="new-password" placeholder="Mật khẩu tối thiểu 6 ký tự">
                     </div>
 
                     @if (!string.IsNullOrEmpty(Functions._Message))
