@@ -97,6 +97,46 @@ namespace LibraryManagement.Areas.Admin.Controllers
             return View(ticket);
         }
 
+        // API TÌM KIẾM ĐỘC GIẢ THEO MÃ HOẶC TÊN (DÙNG CHO Ô TÌM KIẾM KHI LẬP PHIẾU MƯỢN)
+        [HttpGet]
+        [Authorize(Roles = "Admin,Librarian")]
+        public IActionResult SearchReaders(string? keyword)
+        {
+            if (string.IsNullOrWhiteSpace(keyword))
+            {
+                return Json(new { success = true, data = Array.Empty<object>() });
+            }
+
+            string term = keyword.Trim().ToLowerInvariant();
+
+            var matched = _context.Users
+                .Where(u => u.IsActive == true)
+                .ToList()
+                .Where(u =>
+                    u.Code.ToLowerInvariant().Contains(term) ||
+                    (u.UserCode != null && u.UserCode.ToLowerInvariant().Contains(term)) ||
+                    (u.FullName != null && u.FullName.ToLowerInvariant().Contains(term)) ||
+                    (u.UserName != null && u.UserName.ToLowerInvariant().Contains(term)) ||
+                    (u.Email != null && u.Email.ToLowerInvariant().Contains(term))
+                )
+                .OrderByDescending(u => u.Code.Equals(term, StringComparison.OrdinalIgnoreCase))
+                .ThenBy(u => u.Role == "Reader" ? 0 : 1)
+                .ThenBy(u => u.UserID)
+                .Take(10)
+                .Select(u => new
+                {
+                    userId = u.UserID,
+                    code = u.Code,
+                    fullName = u.FullName ?? u.UserName ?? "Bạn đọc",
+                    userName = u.UserName ?? "",
+                    email = u.Email ?? "",
+                    roleLabel = u.Role == "Admin" ? "Quản trị" : (u.Role == "Librarian" ? "Thủ thư" : "Độc giả")
+                })
+                .ToList();
+
+            return Json(new { success = true, data = matched });
+        }
+
         // 3. LẬP PHIẾU MƯỢN MỚI (GET) - CHO PHÉP CHỌN NHIỀU ĐẦU SÁCH
         [HttpGet]
         [Authorize(Roles = "Admin,Librarian")]
