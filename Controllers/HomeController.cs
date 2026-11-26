@@ -225,7 +225,7 @@ namespace LibraryManagement.Controllers
         // 4. ĐĂNG NHẬP
         // =====================================================================
         [HttpPost]
-        public async Task<IActionResult> Login(string userName, string password)
+        public async Task<IActionResult> Login(string userName, string password, bool rememberMe = false)
         {
             if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(password))
             {
@@ -246,6 +246,11 @@ namespace LibraryManagement.Controllers
             if (check.IsActive == false)
             {
                 return Json(new { success = false, message = "Tài khoản của bạn hiện đang bị khóa!" });
+            }
+
+            if (check.Password == PasswordSecurity.GoogleOAuthPlaceholder)
+            {
+                return Json(new { success = false, message = "Tài khoản này được tạo qua Google. Vui lòng nhấn 'Đăng nhập bằng Google'!" });
             }
 
             bool isValid = PasswordSecurity.VerifyPassword(check, check.Password, password, out bool needRehash);
@@ -277,8 +282,8 @@ namespace LibraryManagement.Controllers
             var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             var authProperties = new AuthenticationProperties
             {
-                IsPersistent = true,
-                ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8)
+                IsPersistent = rememberMe,
+                ExpiresUtc = rememberMe ? DateTimeOffset.UtcNow.AddDays(7) : DateTimeOffset.UtcNow.AddHours(8)
             };
 
             await HttpContext.SignInAsync(
