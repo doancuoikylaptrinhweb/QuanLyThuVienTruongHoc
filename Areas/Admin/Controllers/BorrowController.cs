@@ -97,6 +97,85 @@ namespace LibraryManagement.Areas.Admin.Controllers
             return View(ticket);
         }
 
+        // API TÌM KIẾM ĐỘC GIẢ THEO MÃ HOẶC TÊN (DÙNG CHO Ô TÌM KIẾM KHI LẬP PHIẾU MƯỢN)
+        [HttpGet]
+        [Authorize(Roles = "Admin,Librarian")]
+        public IActionResult SearchReaders(string? keyword)
+        {
+            if (string.IsNullOrWhiteSpace(keyword))
+            {
+                return Json(new { success = true, data = Array.Empty<object>() });
+            }
+
+            string term = keyword.Trim().ToLowerInvariant();
+
+            var matched = _context.Users
+                .Where(u => u.IsActive == true)
+                .ToList()
+                .Where(u =>
+                    u.Code.ToLowerInvariant().Contains(term) ||
+                    (u.UserCode != null && u.UserCode.ToLowerInvariant().Contains(term)) ||
+                    (u.FullName != null && u.FullName.ToLowerInvariant().Contains(term)) ||
+                    (u.UserName != null && u.UserName.ToLowerInvariant().Contains(term)) ||
+                    (u.Email != null && u.Email.ToLowerInvariant().Contains(term))
+                )
+                .OrderByDescending(u => u.Code.Equals(term, StringComparison.OrdinalIgnoreCase))
+                .ThenBy(u => u.Role == "Reader" ? 0 : 1)
+                .ThenBy(u => u.UserID)
+                .Take(10)
+                .Select(u => new
+                {
+                    userId = u.UserID,
+                    code = u.Code,
+                    fullName = u.FullName ?? u.UserName ?? "Bạn đọc",
+                    userName = u.UserName ?? "",
+                    email = u.Email ?? "",
+                    roleLabel = u.Role == "Admin" ? "Quản trị" : (u.Role == "Librarian" ? "Thủ thư" : "Độc giả")
+                })
+                .ToList();
+
+            return Json(new { success = true, data = matched });
+        }
+
+        // API TÌM KIẾM SÁCH THEO MÃ SÁCH, TÊN SÁCH HOẶC ISBN (DÙNG CHO Ô TÌM KIẾM KHI LẬP PHIẾU MƯỢN)
+        [HttpGet]
+        [Authorize(Roles = "Admin,Librarian")]
+        public IActionResult SearchBooks(string? keyword)
+        {
+            if (string.IsNullOrWhiteSpace(keyword))
+            {
+                return Json(new { success = true, data = Array.Empty<object>() });
+            }
+
+            string term = keyword.Trim().ToLowerInvariant();
+
+            var matched = _context.Books
+                .Where(b => b.IsActive == true)
+                .ToList()
+                .Where(b =>
+                    b.Code.ToLowerInvariant().Contains(term) ||
+                    (b.BookCode != null && b.BookCode.ToLowerInvariant().Contains(term)) ||
+                    (b.Title != null && b.Title.ToLowerInvariant().Contains(term)) ||
+                    (b.Summary != null && b.Summary.ToLowerInvariant().Contains(term)) ||
+                    (b.Contents != null && b.Contents.ToLowerInvariant().Contains(term))
+                )
+                .OrderByDescending(b => b.Code.Equals(term, StringComparison.OrdinalIgnoreCase))
+                .ThenByDescending(b => b.AvailableQuantity > 0)
+                .ThenBy(b => b.BookID)
+                .Take(10)
+                .Select(b => new
+                {
+                    bookId = b.BookID,
+                    code = b.Code,
+                    title = b.Title ?? "Sách thư viện",
+                    availableQuantity = b.AvailableQuantity,
+                    totalQuantity = b.Quantity
+                })
+                .ToList();
+
+            return Json(new { success = true, data = matched });
+        }
+
         // 3. LẬP PHIẾU MƯỢN MỚI (GET) - CHO PHÉP CHỌN NHIỀU ĐẦU SÁCH
         [HttpGet]
         [Authorize(Roles = "Admin,Librarian")]

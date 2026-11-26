@@ -414,25 +414,52 @@
                         <div class="tab-pane fade show active" id="tab-login" role="tabpanel">
                             <div id="loginAlert" class="alert alert-danger d-none rounded-3 py-2 px-3 small"></div>
                             
-                            <form id="clientLoginForm" onsubmit="handleClientLogin(event)">
+                            <!-- Form Đăng Nhập: trống hoàn toàn khi mở, chặn trình duyệt tự điền tài khoản/mật khẩu cũ -->
+                            <form id="clientLoginForm" autocomplete="off" onsubmit="handleClientLogin(event)">
                                 <div class="mb-3">
                                     <label class="form-label fw-semibold small">Tên đăng nhập / Mã bạn đọc <span class="text-danger">*</span></label>
                                     <div class="input-group">
                                         <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-person"></i></span>
-                                        <input type="text" id="clientLoginUser" class="form-control border-start-0 ps-0" required placeholder="Ví dụ: docgia01, DG0001...">
+                                        <input type="text"
+                                               id="clientLoginUser"
+                                               name="login_username_field"
+                                               class="form-control border-start-0 ps-0"
+                                               required
+                                               autocomplete="off"
+                                               autocorrect="off"
+                                               autocapitalize="none"
+                                               spellcheck="false"
+                                               readonly
+                                               onfocus="this.removeAttribute('readonly');"
+                                               placeholder="Nhập tên đăng nhập hoặc mã bạn đọc...">
                                     </div>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label fw-semibold small">Mật khẩu <span class="text-danger">*</span></label>
                                     <div class="input-group">
                                         <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-key"></i></span>
-                                        <input type="password" id="clientLoginPass" class="form-control border-start-0 ps-0" required placeholder="Nhập mật khẩu...">
+                                        <input type="password"
+                                               id="clientLoginPass"
+                                               name="login_password_field"
+                                               class="form-control border-start-0 border-end-0 ps-0"
+                                               required
+                                               autocomplete="new-password"
+                                               readonly
+                                               onfocus="this.removeAttribute('readonly');"
+                                               placeholder="Nhập mật khẩu...">
+                                        <button type="button"
+                                                class="btn btn-outline-secondary border-start-0 bg-light text-muted"
+                                                onclick="toggleLoginPasswordVisibility()"
+                                                tabindex="-1"
+                                                title="Hiện / Ẩn mật khẩu">
+                                            <i class="bi bi-eye" id="loginPassToggleIcon"></i>
+                                        </button>
                                     </div>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center mb-3 small">
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox" id="rememberMe">
-                                        <label class="form-check-label text-muted" for="rememberMe">Ghi nhớ đăng nhập</label>
+                                        <label class="form-check-label text-muted" for="rememberMe">Ghi nhớ phiên đăng nhập</label>
                                     </div>
                                     <a href="javascript:void(0)" onclick="alert('Vui lòng liên hệ quầy Thủ thư để được hỗ trợ cấp lại mật khẩu thẻ thư viện!')" class="text-decoration-none">Quên mật khẩu?</a>
                                 </div>
@@ -690,6 +717,52 @@
                 if (title) title.textContent = "Cổng Xác Thực Bạn Đọc";
                 if (sub) sub.textContent = "Đăng nhập để tra cứu, mượn sách hoặc theo dõi phiếu mượn";
                 if (icon) icon.className = "bi bi-shield-lock-fill fs-4";
+                clearLoginForm();
+                setTimeout(clearLoginForm, 60);
+            }
+        }
+
+        // Xóa trắng hoàn toàn form đăng nhập, ngăn trình duyệt / cache tự điền tài khoản cũ
+        function clearLoginForm() {
+            var f = document.getElementById("clientLoginForm");
+            if (f) f.reset();
+            var u = document.getElementById("clientLoginUser");
+            if (u) {
+                u.value = "";
+                u.setAttribute("readonly", "readonly");
+            }
+            var p = document.getElementById("clientLoginPass");
+            if (p) {
+                p.value = "";
+                p.type = "password";
+                p.setAttribute("readonly", "readonly");
+            }
+            var icon = document.getElementById("loginPassToggleIcon");
+            if (icon) icon.className = "bi bi-eye";
+            var rem = document.getElementById("rememberMe");
+            if (rem) rem.checked = false;
+            var alertBox = document.getElementById("loginAlert");
+            if (alertBox) {
+                alertBox.textContent = "";
+                alertBox.classList.add("d-none");
+            }
+            var btn = document.getElementById("clientLoginBtn");
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-box-arrow-in-right me-1"></i> Đăng Nhập';
+            }
+        }
+
+        function toggleLoginPasswordVisibility() {
+            var p = document.getElementById("clientLoginPass");
+            var icon = document.getElementById("loginPassToggleIcon");
+            if (!p || !icon) return;
+            if (p.type === "password") {
+                p.type = "text";
+                icon.className = "bi bi-eye-slash";
+            } else {
+                p.type = "password";
+                icon.className = "bi bi-eye";
             }
         }
 
@@ -749,17 +822,36 @@
 
         // Đăng ký sự kiện reset khi mở Modal
         document.addEventListener("DOMContentLoaded", function() {
+            clearLoginForm();
             var authModalEl = document.getElementById('loginModal');
             if (authModalEl) {
                 authModalEl.addEventListener('show.bs.modal', function() {
+                    clearLoginForm();
                     clearRegisterForm();
                 });
                 authModalEl.addEventListener('shown.bs.modal', function() {
                     var regTab = document.getElementById('tab-register');
                     if (regTab && regTab.classList.contains('active')) {
                         clearRegisterForm();
+                    } else {
+                        clearLoginForm();
+                        setTimeout(clearLoginForm, 60);
                     }
                 });
+            }
+
+            @if (TempData["AuthError"] != null)
+            {
+                <text>
+                openAuthModal('login');
+                setTimeout(function() {
+                    var loginAlertEl = document.getElementById('loginAlert');
+                    if (loginAlertEl) {
+                        loginAlertEl.textContent = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["AuthError"]?.ToString()));
+                        loginAlertEl.classList.remove('d-none');
+                    }
+                }, 120);
+                </text>
             }
         });
 
@@ -854,21 +946,34 @@
             });
         }
 
-        // Xử lý đăng nhập từ trang chủ khách
+        // Xử lý đăng nhập từ trang chủ khách (chỉ gửi khi người dùng tự nhập và bấm Đăng Nhập)
         function handleClientLogin(e) {
             e.preventDefault();
-            var user = document.getElementById("clientLoginUser").value.trim();
-            var pass = document.getElementById("clientLoginPass").value.trim();
+            var userEl = document.getElementById("clientLoginUser");
+            var passEl = document.getElementById("clientLoginPass");
+            var remEl = document.getElementById("rememberMe");
             var alertBox = document.getElementById("loginAlert");
             var btn = document.getElementById("clientLoginBtn");
 
+            var user = userEl ? userEl.value.trim() : "";
+            var pass = passEl ? passEl.value : "";
+            var rememberMe = remEl ? remEl.checked : false;
+
             alertBox.classList.add("d-none");
+
+            if (!user || !pass.trim()) {
+                alertBox.textContent = "Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu!";
+                alertBox.classList.remove("d-none");
+                return;
+            }
+
             btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang xử lý...';
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang xác thực...';
 
             var formData = new FormData();
             formData.append("userName", user);
             formData.append("password", pass);
+            formData.append("rememberMe", rememberMe);
 
             fetch('/Home/Login', {
                 method: 'POST',
@@ -881,12 +986,13 @@
                 } else {
                     alertBox.textContent = data.message || "Tên đăng nhập hoặc mật khẩu không chính xác!";
                     alertBox.classList.remove("d-none");
+                    if (passEl) passEl.value = "";
                     btn.disabled = false;
                     btn.innerHTML = '<i class="bi bi-box-arrow-in-right me-1"></i> Đăng Nhập';
                 }
             })
             .catch(err => {
-                alertBox.textContent = "Có lỗi kết nối, vui lòng thử lại!";
+                alertBox.textContent = "Có lỗi kết nối máy chủ, vui lòng thử lại!";
                 alertBox.classList.remove("d-none");
                 btn.disabled = false;
                 btn.innerHTML = '<i class="bi bi-box-arrow-in-right me-1"></i> Đăng Nhập';
