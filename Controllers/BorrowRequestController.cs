@@ -310,5 +310,90 @@ namespace LibraryManagement.Controllers
             TempData["Success"] = $"Đã gửi yêu cầu trả sách cho phiếu [{ticket.Code}] thành công! Trạng thái: 'Chờ duyệt trả'. Vui lòng mang sách tới quầy để Thủ thư tiếp nhận và xác nhận hoàn tất.";
             return RedirectToAction(nameof(MyRequests));
         }
+
+        // 5. TRANG TRA CỨU PHIẾU MƯỢN ĐỘC LẬP (/Borrow/Lookup)
+        [HttpGet]
+        [Route("/Borrow/Lookup")]
+        public IActionResult Lookup(string? keyword)
+        {
+            ViewBag.Keyword = keyword;
+            var resultTickets = new List<tblBorrowTicket>();
+
+            if (!string.IsNullOrWhiteSpace(keyword))
+            {
+                string term = keyword.Trim().ToLowerInvariant();
+                int.TryParse(term, out int parsedId);
+
+                var matchedUserIds = _context.Users
+                    .Where(u => (u.FullName != null && u.FullName.ToLower().Contains(term)) ||
+                                (u.UserName != null && u.UserName.ToLower().Contains(term)) ||
+                                (u.UserCode != null && u.UserCode.ToLower().Contains(term)))
+                    .Select(u => u.UserID).ToList();
+
+                var matchedBookIds = _context.Books
+                    .Where(b => (b.Title != null && b.Title.ToLower().Contains(term)) ||
+                                (b.BookCode != null && b.BookCode.ToLower().Contains(term)))
+                    .Select(b => b.BookID).ToList();
+
+                var matchedTicketIdsFromBooks = _context.BorrowDetails
+                    .Where(d => matchedBookIds.Contains(d.BookID))
+                    .Select(d => d.TicketID).ToList();
+
+                resultTickets = _context.BorrowTickets
+                    .Where(t =>
+                        (t.TicketCode != null && t.TicketCode.ToLower().Contains(term)) ||
+                        (t.ReturnCode != null && t.ReturnCode.ToLower().Contains(term)) ||
+                        matchedUserIds.Contains(t.UserID) ||
+                        matchedTicketIdsFromBooks.Contains(t.TicketID) ||
+                        (parsedId > 0 && t.TicketID == parsedId)
+                    )
+                    .OrderByDescending(t => t.TicketID)
+                    .Take(25)
+                    .ToList();
+            }
+
+            var ticketIds = resultTickets.Select(t => t.TicketID).ToList();
+            var details = _context.BorrowDetails.Where(d => ticketIds.Contains(d.TicketID)).ToList();
+            var bookIds = details.Select(d => d.BookID).Distinct().ToList();
+
+            ViewBag.TicketDetails = details.GroupBy(d => d.TicketID).ToDictionary(g => g.Key, g => g.ToList());
+            ViewBag.Books = _context.Books.Where(b => bookIds.Contains(b.BookID)).ToDictionary(b => b.BookID, b => b);
+            ViewBag.Users = _context.Users.ToDictionary(u => u.UserID, u => u);
+
+            return View(resultTickets);
+        }
+
+        // 6. TRANG HỒ SƠ & LỊCH SỬ MƯỢN TRẢ CỦA BẠN ĐỌC (/Profile)
+        [HttpGet]
+        [Route("/Profile")]
+        public IActionResult Profile()
+        {
+            int userId = GetCurrentUserId();
+            if (userId <= 0)
+            {
+                return Redirect("/Auth/Login?returnUrl=/Profile");
+            }
+
+            var user = _context.Users.Find(userId);
+            if (user == null)
+            {
+                return Redirect("/Auth/Login");
+            }
+
+            var tickets = _context.BorrowTickets
+                .Where(t => t.UserID == userId)
+                .OrderByDescending(t => t.TicketID)
+                .ToList();
+
+            var ticketIds = tickets.Select(t => t.TicketID).ToList();
+            var allDetails = _context.BorrowDetails.Where(d => ticketIds.Contains(d.TicketID)).ToList();
+            var bookIds = allDetails.Select(d => d.BookID).Distinct().ToList();
+
+            ViewBag.CurrentUser = user;
+            ViewBag.TicketDetails = allDetails.GroupBy(d => d.TicketID).ToDictionary(g => g.Key, g => g.ToList());
+            ViewBag.Books = _context.Books.Where(b => bookIds.Contains(b.BookID)).ToDictionary(b => b.BookID, b => b);
+
+            return View(tickets);
+        }
     }
 }

@@ -1,0 +1,152 @@
+@using LibraryManagement.Models
+@model IList<tblBorrowTicket>
+
+@{
+    ViewData["Title"] = "Hồ Sơ & Lịch Sử Mượn Trả - Thư Viện Số";
+    var user = ViewBag.CurrentUser as tblUser;
+    var ticketDetails = ViewBag.TicketDetails as Dictionary<int, List<tblBorrowDetail>> ?? new Dictionary<int, List<tblBorrowDetail>>();
+    var books = ViewBag.Books as Dictionary<long, tblBook> ?? new Dictionary<long, tblBook>();
+}
+
+<div class="page-banner-header">
+    <div class="row align-items-center g-3">
+        <div class="col-md-8">
+            <span class="badge bg-white bg-opacity-25 text-white rounded-pill px-3 py-2 mb-2">
+                <i class="bi bi-person-badge me-1"></i> HỒ SƠ BẠN ĐỌC CÁ NHÂN
+            </span>
+            <h1 class="fw-bold mb-1" style="font-size: 1.9rem;">@(user?.FullName ?? user?.UserName)</h1>
+            <p class="text-white-50 mb-0">
+                Mã bạn đọc: <strong class="text-white">@(user?.Code)</strong> &bull;
+                Tài khoản: <strong class="text-white">@(user?.UserName)</strong>
+                @if (!string.IsNullOrWhiteSpace(user?.Email))
+                {
+                    <span> &bull; Email: <strong class="text-white">@user.Email</strong></span>
+                }
+            </p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <a href="/Lookup" class="btn btn-light rounded-pill px-4 py-2 fw-semibold text-primary shadow-sm">
+                <i class="bi bi-search me-1"></i> Tìm &amp; Mượn sách mới
+            </a>
+        </div>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Thống kê nhanh của bạn đọc -->
+<div class="row g-3 mb-4">
+    <div class="col-4">
+        <div class="stat-card-modern">
+            <div class="stat-card-number">@Model.Count</div>
+            <div class="stat-card-label">Tổng phiếu mượn</div>
+        </div>
+    </div>
+    <div class="col-4">
+        <div class="stat-card-modern">
+            <div class="stat-card-number text-primary">@Model.Count(t => t.Status == "Đang mượn" || t.Status == "Trả một phần" || t.Status == "Quá hạn")</div>
+            <div class="stat-card-label">Đang mượn</div>
+        </div>
+    </div>
+    <div class="col-4">
+        <div class="stat-card-modern">
+            <div class="stat-card-number text-success">@Model.Count(t => t.Status == "Đã trả")</div>
+            <div class="stat-card-label">Đã hoàn trả</div>
+        </div>
+    </div>
+</div>
+
+<!-- Lịch sử mượn trả -->
+<div class="section-surface">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold text-dark mb-0"><i class="bi bi-clock-history text-primary me-2"></i>Lịch Sử &amp; Phiếu Mượn Của Tôi</h5>
+    </div>
+
+    @if (Model.Count == 0)
+    {
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-journal-x fs-1 d-block mb-2 opacity-50"></i>
+            Bạn chưa có phiếu mượn sách nào.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size: 14px;">
+                <thead class="table-light">
+                    <tr>
+                        <th>Mã phiếu</th>
+                        <th>Danh sách sách</th>
+                        <th>Ngày mượn</th>
+                        <th>Hạn trả</th>
+                        <th>Trạng thái</th>
+                        <th>Mã trả</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var t in Model)
+                    {
+                        ticketDetails.TryGetValue(t.TicketID, out var details);
+                        bool canReturn = t.Status == "Đang mượn" || t.Status == "Trả một phần" || t.Status == "Quá hạn";
+
+                        <tr>
+                            <td><span class="badge" style="background: #eef2ff; color: #4338ca;">@t.Code</span></td>
+                            <td>
+                                @if (details != null && details.Count > 0)
+                                {
+                                    foreach (var d in details)
+                                    {
+                                        books.TryGetValue(d.BookID, out var bk);
+                                        <div class="small fw-medium">
+                                            • @(bk?.Title ?? $"Sách #{d.BookID}")
+                                            @if (d.IsReturned)
+                                            {
+                                                <span class="badge bg-success-subtle text-success ms-1">Đã trả</span>
+                                            }
+                                        </div>
+                                    }
+                                }
+                            </td>
+                            <td>@t.BorrowDate.ToString("dd/MM/yyyy")</td>
+                            <td>@t.DueDate.ToString("dd/MM/yyyy")</td>
+                            <td>
+                                <span class="badge rounded-pill @(t.Status == "Đã trả" ? "bg-success-subtle text-success" : (t.Status == "Chờ duyệt trả" ? "bg-warning-subtle text-warning-emphasis" : "bg-primary-subtle text-primary")) px-3 py-1">
+                                    @(t.Status ?? "Đang mượn")
+                                </span>
+                            </td>
+                            <td>@t.DisplayReturnCode</td>
+                            <td class="text-end">
+                                @if (canReturn)
+                                {
+                                    <form method="post" action="/BorrowRequest/RequestReturn/@t.TicketID" class="d-inline" onsubmit="return confirm('Xác nhận gửi yêu cầu trả sách cho phiếu @t.Code?');">
+                                        <button type="submit" class="btn btn-sm btn-outline-success rounded-pill px-3 fw-semibold">
+                                            <i class="bi bi-arrow-return-left me-1"></i> Trả sách
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">---</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

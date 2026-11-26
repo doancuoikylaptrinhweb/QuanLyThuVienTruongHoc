@@ -20,69 +20,122 @@ namespace LibraryManagement.Controllers
         }
 
         // =====================================================================
-        // 1. TRANG CHỦ & TRA CỨU SÁCH
+        // 1. TRANG CHỦ (/Home, /) & TRA CỨU SÁCH NÂNG CAO (/Lookup)
         // =====================================================================
+        [Route("/")]
+        [Route("/Home")]
+        [Route("/Home/Index")]
         public IActionResult Index(string? searchString, int? categoryId)
         {
-            // Lấy tất cả sách đang kích hoạt kèm tác giả về memory để tránh lỗi
-            // SQL Server ntext không hỗ trợ LOWER() / Contains() trong EF LINQ trực tiếp.
-            var allActiveBooks = _context.Books
+            var filteredBooks = FilterBooks(searchString, categoryId, null, null);
+            PopulateCatalogViewBags();
+
+            // Trang chủ hiển thị tối đa 8 sách nổi bật/mới nhất nếu không đang lọc
+            var featuredBooks = (string.IsNullOrWhiteSpace(searchString) && (!categoryId.HasValue || categoryId.Value <= 0))
+                ? filteredBooks.Take(8).ToList()
+                : filteredBooks;
+
+            ViewBag.SearchString = searchString;
+            ViewBag.SelectedCategory = categoryId;
+            ViewBag.TotalFilteredBooks = filteredBooks.Count;
+
+            return View(featuredBooks);
+        }
+
+        [Route("/Lookup")]
+        [HttpGet]
+        public IActionResult Lookup(string? searchString, int? categoryId, int? authorId, bool? onlyAvailable)
+        {
+            var matchedBooks = FilterBooks(searchString, categoryId, authorId, onlyAvailable);
+            PopulateCatalogViewBags();
+
+            ViewBag.SearchString = searchString;
+            ViewBag.SelectedCategory = categoryId;
+            ViewBag.SelectedAuthor = authorId;
+            ViewBag.OnlyAvailable = onlyAvailable == true;
+            ViewBag.AuthorsList = _context.Authors
+                .Where(a => a.IsActive == true)
+                .OrderBy(a => a.AuthorName)
+                .ToList();
+
+            return View(matchedBooks);
+        }
+
+        [Route("/Rules")]
+        [HttpGet]
+        public IActionResult Rules()
+        {
+            return View();
+        }
+
+        [Route("/About")]
+        [HttpGet]
+        public IActionResult About()
+        {
+            ViewBag.TotalBooks = _context.Books.Count(b => b.IsActive == true);
+            ViewBag.TotalCopies = _context.Books.Where(b => b.IsActive == true).Sum(b => (int?)b.Quantity) ?? 0;
+            ViewBag.TotalReaders = _context.Users.Count(u => u.Role == "Reader" && u.IsActive == true);
+            ViewBag.TotalCategories = _context.Categories.Count(c => c.IsActive == true);
+            return View();
+        }
+
+        private List<tblBook> FilterBooks(string? searchString, int? categoryId, int? authorId, bool? onlyAvailable)
+        {
+            var books = _context.Books
                 .Include(b => b.Author)
                 .Where(b => b.IsActive == true)
                 .OrderByDescending(b => b.BookID)
-                .ToList(); // ← chuyển về memory tại đây
+                .ToList();
 
-            // Lọc category TRƯỚC khi tìm kiếm để thu hẹp tập hợp
             if (categoryId.HasValue && categoryId.Value > 0)
             {
-                allActiveBooks = allActiveBooks
-                    .Where(b => b.CategoryID == categoryId.Value)
-                    .ToList();
-                ViewBag.SelectedCategory = categoryId.Value;
+                books = books.Where(b => b.CategoryID == categoryId.Value).ToList();
             }
 
-            // Tìm kiếm IN-MEMORY: hỗ trợ tiếng Việt có dấu, không phân biệt hoa/thường,
-            // không bị lỗi ntext vì xử lý hoàn toàn phía .NET.
+            if (authorId.HasValue && authorId.Value > 0)
+            {
+                books = books.Where(b => b.AuthorID == authorId.Value).ToList();
+            }
+
+            if (onlyAvailable == true)
+            {
+                books = books.Where(b => b.AvailableQuantity > 0).ToList();
+            }
+
             if (!string.IsNullOrWhiteSpace(searchString))
             {
-                var termNorm = NormalizeString(searchString); // bỏ dấu, lowercase
-                var termRaw  = searchString.Trim().ToLowerInvariant(); // giữ dấu, lowercase
+                var termNorm = NormalizeString(searchString);
+                var termRaw = searchString.Trim().ToLowerInvariant();
 
-                allActiveBooks = allActiveBooks.Where(b =>
+                books = books.Where(b =>
                 {
-                    // Tìm theo tên sách
                     if (b.Title != null)
                     {
                         if (b.Title.ToLowerInvariant().Contains(termRaw)) return true;
-                        if (NormalizeString(b.Title).Contains(termNorm))  return true;
+                        if (NormalizeString(b.Title).Contains(termNorm)) return true;
                     }
-                    // Tìm theo mã sách (MS0001...)
-                    if (b.BookCode != null &&
-                        b.BookCode.ToLowerInvariant().Contains(termRaw))   return true;
-                    // Tìm theo tóm tắt / mô tả
+                    if (b.BookCode != null && b.BookCode.ToLowerInvariant().Contains(termRaw)) return true;
+                    if (b.Code.ToLowerInvariant().Contains(termRaw)) return true;
                     if (b.Summary != null)
                     {
                         if (b.Summary.ToLowerInvariant().Contains(termRaw)) return true;
-                        if (NormalizeString(b.Summary).Contains(termNorm))  return true;
+                        if (NormalizeString(b.Summary).Contains(termNorm)) return true;
                     }
-                    // Tìm theo nội dung
-                    if (b.Contents != null &&
-                        b.Contents.ToLowerInvariant().Contains(termRaw))    return true;
-                    // Tìm theo tên tác giả
+                    if (b.Contents != null && b.Contents.ToLowerInvariant().Contains(termRaw)) return true;
                     if (b.Author?.AuthorName != null)
                     {
                         if (b.Author.AuthorName.ToLowerInvariant().Contains(termRaw)) return true;
-                        if (NormalizeString(b.Author.AuthorName).Contains(termNorm))  return true;
+                        if (NormalizeString(b.Author.AuthorName).Contains(termNorm)) return true;
                     }
                     return false;
                 }).ToList();
-
-                ViewBag.SearchString = searchString;
             }
 
-            var allBooks = allActiveBooks;
+            return books;
+        }
 
-            // Danh mục và tác giả từ Database
+        private void PopulateCatalogViewBags()
+        {
             var categories = _context.Categories
                 .Where(c => c.IsActive == true)
                 .OrderBy(c => c.CategoryID)
@@ -97,12 +150,9 @@ namespace LibraryManagement.Controllers
             ViewBag.CategoryBookCounts = categoryBookCounts;
             ViewBag.Authors = _context.Authors.ToDictionary(a => a.AuthorID, a => a.AuthorName ?? "Chưa rõ");
 
-            // Thống kê
             ViewBag.TotalBooks = _context.Books.Count(b => b.IsActive == true);
             ViewBag.TotalCopies = _context.Books.Where(b => b.IsActive == true).Sum(b => (int?)b.Quantity) ?? 0;
             ViewBag.TotalReaders = _context.Users.Count(u => u.Role == "Reader" && u.IsActive == true);
-
-            return View(allBooks);
         }
 
         // =====================================================================
@@ -133,6 +183,7 @@ namespace LibraryManagement.Controllers
         // =====================================================================
         // 2. XEM CHI TIẾT SÁCH
         // =====================================================================
+        [Route("/Book/Detail/{id:long}")]
         [Route("/sach-{slug}-{id:long}.html", Name = "BookDetails")]
         public IActionResult Details(long? id)
         {

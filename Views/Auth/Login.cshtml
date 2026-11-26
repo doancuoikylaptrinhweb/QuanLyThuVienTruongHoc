@@ -1,0 +1,96 @@
+@{
+    ViewData["Title"] = "Đăng Nhập - Cổng Bạn Đọc Thư Viện Số";
+}
+
+<div class="row justify-content-center my-4">
+    <div class="col-lg-9">
+        <div class="auth-page-card row g-0">
+            <!-- Cột trái: Giới thiệu ngắn -->
+            <div class="col-md-5 auth-page-aside d-flex flex-column justify-content-between">
+                <div>
+                    <span class="badge bg-white bg-opacity-25 text-white rounded-pill px-3 py-2 mb-3">
+                        <i class="bi bi-shield-lock me-1"></i> CỔNG XÁC THỰC BẠN ĐỌC
+                    </span>
+                    <h3 class="fw-bold mb-3">Chào mừng trở lại Thư Viện Số</h3>
+                    <p class="text-white-50 small mb-4" style="line-height: 1.65;">
+                        Đăng nhập để đăng ký mượn sách trực tuyến, theo dõi hạn trả và quản lý hồ sơ bạn đọc cá nhân.
+                    </p>
+                </div>
+                <div class="small text-white-50">
+                    <div><i class="bi bi-check-circle-fill text-info me-2"></i>Mượn tối đa 3 cuốn / 14 ngày</div>
+                    <div class="mt-2"><i class="bi bi-check-circle-fill text-info me-2"></i>Hỗ trợ đăng nhập Gmail (OAuth 2.0)</div>
+                </div>
+            </div>
+
+            <!-- Cột phải: Form đăng nhập sạch, không tự điền -->
+            <div class="col-md-7 p-4 p-md-5 bg-white">
+                <h4 class="fw-bold text-dark mb-1">Đăng Nhập Tài Khoản</h4>
+                <p class="text-muted small mb-4">Nhập thông tin tài khoản của bạn để tiếp tục.</p>
+
+                @if (ViewBag.Error != null)
+                {
+                    <div class="alert alert-danger rounded-3 py-2 px-3 small mb-3">
+                        <i class="bi bi-exclamation-circle-fill me-1"></i> @ViewBag.Error
+                    </div>
+                }
+
+                <form method="post" action="/Auth/Login" autocomplete="off">
+                    <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Tên đăng nhập / Mã bạn đọc <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bi bi-person text-muted"></i></span>
+                            <input type="text" name="userName" id="pageLoginUser" class="form-control" required
+                                   autocomplete="off" readonly onfocus="this.removeAttribute('readonly');"
+                                   placeholder="Nhập tên đăng nhập hoặc mã DG...">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Mật khẩu <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bi bi-key text-muted"></i></span>
+                            <input type="password" name="password" id="pageLoginPass" class="form-control" required
+                                   autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly');"
+                                   placeholder="Nhập mật khẩu...">
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-4 small">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="rememberMe" value="true" id="pageRememberMe">
+                            <label class="form-check-label text-muted" for="pageRememberMe">Ghi nhớ phiên đăng nhập</label>
+                        </div>
+                        <a href="/Rules" class="text-decoration-none">Xem nội quy</a>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-semibold shadow-sm">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Đăng Nhập
+                    </button>
+                </form>
+
+                <div class="d-flex align-items-center my-3">
+                    <hr class="flex-grow-1 text-muted">
+                    <span class="px-2 small text-muted">hoặc</span>
+                    <hr class="flex-grow-1 text-muted">
+                </div>
+
+                <a href="/Home/GoogleLogin" class="btn btn-outline-dark w-100 rounded-pill py-2 fw-semibold d-flex align-items-center justify-content-center gap-2 shadow-sm bg-white">
+                    <i class="bi bi-google text-danger"></i>
+                    <span>Đăng nhập bằng Google</span>
+                </a>
+
+                <div class="text-center mt-4 small text-muted">
+                    Chưa có tài khoản bạn đọc?
+                    <a href="/Auth/Register" class="text-primary fw-semibold text-decoration-none ms-1">Đăng ký ngay</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        var u = document.getElementById("pageLoginUser");
+        var p = document.getElementById("pageLoginPass");
+        if (u) u.value = "";
+        if (p) p.value = "";
+    });
+</script>

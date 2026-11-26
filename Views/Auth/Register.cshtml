@@ -1,0 +1,72 @@
+@{
+    ViewData["Title"] = "Đăng Ký Bạn Đọc Mới - Thư Viện Số";
+}
+
+<div class="row justify-content-center my-4">
+    <div class="col-lg-9">
+        <div class="auth-page-card row g-0">
+            <div class="col-md-5 auth-page-aside d-flex flex-column justify-content-between">
+                <div>
+                    <span class="badge bg-white bg-opacity-25 text-white rounded-pill px-3 py-2 mb-3">
+                        <i class="bi bi-person-plus me-1"></i> TẠO TÀI KHOẢN MỚI
+                    </span>
+                    <h3 class="fw-bold mb-3">Đăng Ký Thẻ Bạn Đọc</h3>
+                    <p class="text-white-50 small mb-4" style="line-height: 1.65;">
+                        Hoàn tất khai báo để được cấp mã bạn đọc <code>DGxxxx</code> tự động và sử dụng đầy đủ dịch vụ thư viện số.
+                    </p>
+                </div>
+                <div class="small text-white-50">
+                    <div>1. Khai báo thông tin cá nhân</div>
+                    <div class="mt-2">2. Tự động cấp mã bạn đọc [DG]</div>
+                    <div class="mt-2">3. Xác thực &amp; mượn sách trực tuyến</div>
+                </div>
+            </div>
+
+            <div class="col-md-7 p-4 p-md-5 bg-white">
+                <h4 class="fw-bold text-dark mb-1">Đăng Ký Tài Khoản Bạn Đọc</h4>
+                <p class="text-muted small mb-4">Vui lòng nhập đầy đủ thông tin bên dưới.</p>
+
+                @if (ViewBag.Error != null)
+                {
+                    <div class="alert alert-danger rounded-3 py-2 px-3 small mb-3">
+                        <i class="bi bi-exclamation-circle-fill me-1"></i> @ViewBag.Error
+                    </div>
+                }
+
+                <form method="post" action="/Auth/Register" autocomplete="off">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Họ và tên bạn đọc <span class="text-danger">*</span></label>
+                        <input type="text" name="fullName" class="form-control" required autocomplete="off" placeholder="Ví dụ: Nguyễn Văn An">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Tên đăng nhập mới <span class="text-danger">*</span></label>
+                        <input type="text" name="userName" class="form-control" required autocomplete="off" placeholder="Tối thiểu 3 ký tự">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Email (tùy chọn)</label>
+                        <input type="email" name="email" class="form-control" autocomplete="off" placeholder="email@truonghoc.edu.vn">
+                    </div>
+                    <div class="row g-2 mb-4">
+                        <div class="col-sm-6">
+                            <label class="form-label fw-semibold small">Mật khẩu <span class="text-danger">*</span></label>
+                            <input type="password" name="password" class="form-control" required autocomplete="new-password" placeholder="Tối thiểu 6 ký tự">
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label fw-semibold small">Nhập lại mật khẩu <span class="text-danger">*</span></label>
+                            <input type="password" name="confirmPassword" class="form-control" required autocomplete="new-password" placeholder="Xác nhận mật khẩu">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100 rounded-pill py-2 fw-semibold shadow-sm">
+                        <i class="bi bi-person-check me-1"></i> Hoàn Tất Đăng Ký
+                    </button>
+                </form>
+
+                <div class="text-center mt-4 small text-muted">
+                    Đã có tài khoản bạn đọc?
+                    <a href="/Auth/Login" class="text-primary fw-semibold text-decoration-none ms-1">Đăng nhập ngay</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

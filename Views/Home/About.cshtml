@@ -1,0 +1,86 @@
+@{
+    ViewData["Title"] = "Giới Thiệu Thư Viện Số";
+}
+
+<div class="page-banner-header">
+    <span class="badge bg-white bg-opacity-25 text-white rounded-pill px-3 py-2 mb-2">
+        <i class="bi bi-building me-1"></i> TRUNG TÂM THÔNG TIN &amp; THƯ VIỆN
+    </span>
+    <h1 class="fw-bold mb-2" style="font-size: 2rem;">Về Thư Viện Số Trường Học Thông Minh</h1>
+    <p class="text-white-50 mb-0">Không gian tri thức hiện đại kết nối bạn đọc với kho tài liệu số hóa và dịch vụ mượn trả trực tuyến.</p>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="stat-card-modern">
+            <div class="stat-card-number">@(ViewBag.TotalBooks ?? 0)+</div>
+            <div class="stat-card-label">Đầu sách đang lưu hành</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card-modern">
+            <div class="stat-card-number">@(ViewBag.TotalCopies ?? 0)+</div>
+            <div class="stat-card-label">Tổng bản sách trong kho</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card-modern">
+            <div class="stat-card-number">@(ViewBag.TotalCategories ?? 0)</div>
+            <div class="stat-card-label">Chuyên mục thể loại</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card-modern">
+            <div class="stat-card-number">@(ViewBag.TotalReaders ?? 0)+</div>
+            <div class="stat-card-label">Bạn đọc hoạt động</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-5">
+    <div class="col-lg-7">
+        <div class="section-surface h-100">
+            <h4 class="fw-bold text-dark mb-3">Sứ mệnh &amp; Dịch vụ nổi bật</h4>
+            <p class="text-secondary" style="line-height: 1.7;">
+                Thư viện Số Trường Học Thông Minh được xây dựng nhằm tối ưu hóa trải nghiệm tra cứu, đăng ký mượn và theo dõi tài liệu học thuật cho học sinh, sinh viên và giảng viên.
+            </p>
+            <div class="d-flex flex-column gap-3 mt-4">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="rounded-3 bg-primary-subtle text-primary p-2"><i class="bi bi-search fs-5"></i></div>
+                    <div>
+                        <h6 class="fw-bold mb-1">Tra cứu chính xác theo thời gian thực</h6>
+                        <p class="text-muted small mb-0">Kiểm tra ngay số lượng sách còn trên kệ, thông tin tác giả, nhà xuất bản và năm phát hành.</p>
+                    </div>
+                </div>
+                <div class="d-flex align-items-start gap-3">
+                    <div class="rounded-3 bg-success-subtle text-success p-2"><i class="bi bi-shield-check fs-5"></i></div>
+                    <div>
+                        <h6 class="fw-bold mb-1">Đăng ký mượn &amp; hoàn trả minh bạch</h6>
+                        <p class="text-muted small mb-0">Theo dõi từng phiếu mượn (mã <code>PM</code>, <code>PT</code>), hạn trả và trạng thái duyệt trực tiếp trên tài khoản cá nhân.</p>
+                    </div>
+                </div>
+                <div class="d-flex align-items-start gap-3">
+                    <div class="rounded-3 bg-info-subtle text-info p-2"><i class="bi bi-robot fs-5"></i></div>
+                    <div>
+                        <h6 class="fw-bold mb-1">Trợ lý AI Thư viện 24/7</h6>
+                        <p class="text-muted small mb-0">Hỗ trợ giải đáp nhanh quy định mượn trả và gợi ý đầu sách phù hợp mọi lúc.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="section-surface h-100">
+            <h4 class="fw-bold text-dark mb-3">Thông tin liên hệ &amp; Giờ phục vụ</h4>
+            <ul class="list-unstyled d-flex flex-column gap-3 text-secondary mb-4">
+                <li><i class="bi bi-geo-alt-fill text-primary me-2"></i> <strong>Địa điểm:</strong> Tòa nhà Trung Tâm Thông tin &amp; Thư viện</li>
+                <li><i class="bi bi-clock-fill text-primary me-2"></i> <strong>Giờ mở cửa:</strong> 07:30 – 21:00 (Thứ 2 – Thứ 7)</li>
+                <li><i class="bi bi-telephone-fill text-primary me-2"></i> <strong>Hotline:</strong> (024) 3822-0801</li>
+                <li><i class="bi bi-envelope-fill text-primary me-2"></i> <strong>Email:</strong> thuvien@truonghoc.edu.vn</li>
+            </ul>
+            <a href="/Lookup" class="btn btn-primary rounded-pill w-100 py-2 fw-semibold">
+                <i class="bi bi-book-half me-1"></i> Bắt đầu khám phá kho sách
+            </a>
+        </div>
+    </div>
+</div>
