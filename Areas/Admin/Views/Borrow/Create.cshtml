@@ -116,22 +116,42 @@
                         <i class="bi bi-bookshelf text-primary"></i> Danh Sách Sách Mượn Chi Tiết
                     </h5>
 
-                    <!-- Thanh chọn thêm sách nhanh -->
-                    <div class="p-3 bg-light rounded-4 border mb-3">
-                        <label class="form-label fw-semibold small text-dark mb-1">Chọn sách có sẵn trên kệ và bấm thêm:</label>
+                    <!-- Thanh tìm kiếm & thêm sách nhanh -->
+                    <div class="p-3 bg-light rounded-4 border mb-3 position-relative">
+                        <label class="form-label fw-semibold small text-dark mb-1">Tìm kiếm sách cần mượn (Mã sách, Tên sách hoặc ISBN):</label>
                         <div class="d-flex gap-2">
-                            <select id="bookPickerSelect" class="form-select">
-                                <option value="">-- Chọn cuốn sách cần thêm --</option>
-                                @foreach (var b in availableBooks)
-                                {
-                                    <option value="@b.BookID" data-code="@b.Code" data-title="@b.Title" data-avail="@b.AvailableQuantity">
-                                        [@b.Code] @b.Title (Còn @b.AvailableQuantity bản)
-                                    </option>
-                                }
-                            </select>
-                            <button type="button" class="btn btn-primary px-3 fw-semibold text-nowrap d-flex align-items-center gap-1" onclick="addBookToBorrowList()">
+                            <div class="input-group">
+                                <span class="input-group-text bg-white text-primary"><i class="bi bi-search"></i></span>
+                                <input type="text"
+                                       id="bookSearchInput"
+                                       class="form-control"
+                                       autocomplete="off"
+                                       placeholder="Nhập mã sách (VD: MS0001), tên sách hoặc ISBN..." />
+                                <button type="button"
+                                        id="btnClearBookSearch"
+                                        class="btn btn-outline-secondary d-none"
+                                        onclick="clearBookSearch()"
+                                        title="Xóa từ khóa tìm sách">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                            <button type="button" id="btnAddBook" class="btn btn-primary px-3 fw-semibold text-nowrap d-flex align-items-center gap-1" onclick="addBookToBorrowList()">
                                 <i class="bi bi-plus-lg"></i> Thêm sách
                             </button>
+                        </div>
+
+                        <!-- Thông báo kiểm tra tồn kho / trùng sách / không tìm thấy -->
+                        <div id="bookSearchMessage" class="alert alert-warning py-2 px-3 small rounded-3 mt-2 mb-0 d-none"></div>
+
+                        <!-- Danh sách kết quả tìm kiếm sách -->
+                        <div id="bookSearchResults"
+                             class="list-group shadow-sm rounded-3 mt-2 d-none bg-white"
+                             style="max-height: 230px; overflow-y: auto; border: 1px solid #e2e8f0;">
+                        </div>
+
+                        <!-- Hiển thị sách đang chọn chờ nhấn Thêm sách -->
+                        <div id="pendingBookBadge" class="mt-2 small text-primary fw-semibold d-none">
+                            <i class="bi bi-check2-circle me-1"></i> Đang chọn: <span id="pendingBookText"></span> — Nhấn <strong>Thêm sách</strong> để đưa vào phiếu.
                         </div>
                     </div>
 
@@ -178,8 +198,10 @@
 </main>
 
 <script>
-    var selectedBookIds = [];
+    var selectedBooks = [];
+    var pendingSelectedBook = null;
     var readerSearchTimer = null;
+    var bookSearchTimer = null;
 
     function escapeHtml(str) {
         if (!str) return '';
@@ -227,6 +249,41 @@
                 }
             }
         });
+
+        var bookInput = document.getElementById("bookSearchInput");
+        if (bookInput) {
+            bookInput.addEventListener("input", function () {
+                pendingSelectedBook = null;
+                document.getElementById("pendingBookBadge").classList.add("d-none");
+                document.getElementById("bookSearchMessage").classList.add("d-none");
+
+                var keyword = bookInput.value.trim();
+                var clearBtn = document.getElementById("btnClearBookSearch");
+                if (keyword.length > 0) clearBtn.classList.remove("d-none");
+                else clearBtn.classList.add("d-none");
+
+                clearTimeout(bookSearchTimer);
+                if (!keyword) {
+                    hideBookResults();
+                    return;
+                }
+
+                bookSearchTimer = setTimeout(function () {
+                    performBookSearch(keyword);
+                }, 200);
+            });
+
+            bookInput.addEventListener("keydown", function (e) {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    var keyword = bookInput.value.trim();
+                    if (keyword) {
+                        clearTimeout(bookSearchTimer);
+                        performBookSearch(keyword);
+                    }
+                }
+            });
+        }
     });
 
     function performReaderSearch(keyword) {
@@ -310,31 +367,134 @@
         resultsEl.classList.add("d-none");
     }
 
+    function performBookSearch(keyword) {
+        var resultsEl = document.getElementById("bookSearchResults");
+        var msgEl = document.getElementById("bookSearchMessage");
+
+        fetch('/Admin/Borrow/SearchBooks?keyword=' + encodeURIComponent(keyword))
+            .then(function (res) { return res.json(); })
+            .then(function (res) {
+                var list = (res && res.data) ? res.data : [];
+                if (list.length === 0) {
+                    hideBookResults();
+                    showBookMessage('warning', 'Không tìm thấy cuốn sách nào phù hợp với từ khóa "<strong>' + escapeHtml(keyword) + '</strong>".');
+                    return;
+                }
+
+                msgEl.classList.add("d-none");
+                var html = "";
+                list.forEach(function (b) {
+                    var alreadyAdded = selectedBooks.some(function (s) { return String(s.bookId) === String(b.bookId); });
+                    var isOutOfStock = b.availableQuantity <= 0;
+
+                    var rightBadge = alreadyAdded
+                        ? '<span class="badge bg-info-subtle text-info-emphasis border">Đã thêm</span>'
+                        : (isOutOfStock
+                            ? '<span class="badge bg-danger-subtle text-danger border">Hết sách (0 bản)</span>'
+                            : '<span class="badge bg-success-subtle text-success border">Còn ' + b.availableQuantity + ' bản</span>');
+
+                    html += '<button type="button" class="list-group-item list-group-item-action py-2 px-3 d-flex justify-content-between align-items-center" ' +
+                        'onclick=\'selectBookCandidate(' + JSON.stringify(b) + ')\'>' +
+                        '<div class="text-start me-2 overflow-hidden">' +
+                        '<div class="d-flex align-items-center gap-2">' +
+                        '<span class="badge" style="background: #eef2ff; color: #4338ca; font-weight: 700;">' + escapeHtml(b.code) + '</span>' +
+                        '<span class="fw-semibold text-dark text-truncate">' + escapeHtml(b.title) + '</span>' +
+                        '</div>' +
+                        '</div>' +
+                        rightBadge +
+                        '</button>';
+                });
+
+                resultsEl.innerHTML = html;
+                resultsEl.classList.remove("d-none");
+            })
+            .catch(function () {
+                hideBookResults();
+                showBookMessage('danger', 'Không thể tìm kiếm sách lúc này, vui lòng thử lại.');
+            });
+    }
+
+    function selectBookCandidate(b) {
+        if (b.availableQuantity <= 0) {
+            showBookMessage('danger', 'Cuốn sách "<strong>' + escapeHtml(b.title) + '</strong>" (' + escapeHtml(b.code) + ') hiện đã hết bản khả dụng (0 bản), không thể mượn!');
+            return;
+        }
+
+        if (selectedBooks.some(function (s) { return String(s.bookId) === String(b.bookId); })) {
+            showBookMessage('warning', 'Cuốn sách "<strong>' + escapeHtml(b.title) + '</strong>" (' + escapeHtml(b.code) + ') đã có trong danh sách mượn của phiếu!');
+            return;
+        }
+
+        pendingSelectedBook = b;
+        document.getElementById("bookSearchInput").value = "[" + b.code + "] " + b.title;
+        document.getElementById("btnClearBookSearch").classList.remove("d-none");
+        document.getElementById("bookSearchMessage").classList.add("d-none");
+        document.getElementById("pendingBookText").textContent = "[" + b.code + "] " + b.title + " (Còn " + b.availableQuantity + " bản)";
+        document.getElementById("pendingBookBadge").classList.remove("d-none");
+        hideBookResults();
+    }
+
+    function clearBookSearch() {
+        pendingSelectedBook = null;
+        var input = document.getElementById("bookSearchInput");
+        input.value = "";
+        input.focus();
+        document.getElementById("btnClearBookSearch").classList.add("d-none");
+        document.getElementById("pendingBookBadge").classList.add("d-none");
+        document.getElementById("bookSearchMessage").classList.add("d-none");
+        hideBookResults();
+    }
+
+    function hideBookResults() {
+        var resultsEl = document.getElementById("bookSearchResults");
+        resultsEl.innerHTML = "";
+        resultsEl.classList.add("d-none");
+    }
+
+    function showBookMessage(type, htmlMsg) {
+        var msgEl = document.getElementById("bookSearchMessage");
+        msgEl.className = "alert alert-" + type + " py-2 px-3 small rounded-3 mt-2 mb-0";
+        msgEl.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i> ' + htmlMsg;
+        msgEl.classList.remove("d-none");
+    }
+
     function addBookToBorrowList() {
-        var select = document.getElementById("bookPickerSelect");
-        var bookId = select.value;
-        if (!bookId) {
-            alert("Vui lòng chọn một cuốn sách từ danh sách!");
+        if (!pendingSelectedBook) {
+            showBookMessage('warning', 'Vui lòng tìm kiếm và chọn một cuốn sách hợp lệ từ danh sách kết quả trước khi nhấn Thêm sách!');
+            document.getElementById("bookSearchInput").focus();
             return;
         }
 
-        if (selectedBookIds.includes(bookId)) {
-            alert("Cuốn sách này đã có trong danh sách mượn của phiếu!");
+        if (pendingSelectedBook.availableQuantity <= 0) {
+            showBookMessage('danger', 'Cuốn sách này đã hết tồn kho (0 bản), không thể thêm vào phiếu mượn!');
             return;
         }
 
-        var option = select.options[select.selectedIndex];
-        var code = option.getAttribute("data-code");
-        var title = option.getAttribute("data-title");
-        var avail = option.getAttribute("data-avail");
+        if (selectedBooks.some(function (s) { return String(s.bookId) === String(pendingSelectedBook.bookId); })) {
+            showBookMessage('warning', 'Cuốn sách này đã có trong danh sách mượn của phiếu (không thể thêm trùng)!');
+            return;
+        }
 
-        selectedBookIds.push(bookId);
+        // Kiểm tra số lượng thêm (1 cuốn/đầu sách) không vượt quá số lượng khả dụng
+        if (1 > pendingSelectedBook.availableQuantity) {
+            showBookMessage('danger', 'Số lượng mượn vượt quá số lượng còn lại trên kệ!');
+            return;
+        }
+
+        selectedBooks.push(pendingSelectedBook);
+        pendingSelectedBook = null;
+        document.getElementById("bookSearchInput").value = "";
+        document.getElementById("btnClearBookSearch").classList.add("d-none");
+        document.getElementById("pendingBookBadge").classList.add("d-none");
+        document.getElementById("bookSearchMessage").classList.add("d-none");
+        hideBookResults();
+
         renderSelectedBooksTable();
-        select.value = "";
+        document.getElementById("bookSearchInput").focus();
     }
 
     function removeBookFromList(bookId) {
-        selectedBookIds = selectedBookIds.filter(id => id !== String(bookId));
+        selectedBooks = selectedBooks.filter(function (b) { return String(b.bookId) !== String(bookId); });
         renderSelectedBooksTable();
     }
 
@@ -343,13 +503,13 @@
         var countSpan = document.getElementById("selectedBooksCount");
         var submitBtn = document.getElementById("btnSubmitBorrow");
 
-        countSpan.textContent = selectedBookIds.length;
+        countSpan.textContent = selectedBooks.length;
 
-        if (selectedBookIds.length === 0) {
+        if (selectedBooks.length === 0) {
             tbody.innerHTML = '<tr id="emptyBooksRow">' +
                 '<td colspan="4" class="text-center py-4 text-muted">' +
                 '<i class="bi bi-journal-plus fs-3 d-block mb-1 opacity-50"></i>' +
-                'Chưa có cuốn sách nào được chọn. Vui lòng chọn sách từ danh sách phía trên.' +
+                'Chưa có cuốn sách nào được chọn. Vui lòng tìm kiếm và thêm sách từ ô phía trên.' +
                 '</td></tr>';
             submitBtn.disabled = true;
             return;
@@ -357,20 +517,14 @@
 
         submitBtn.disabled = false;
         var html = "";
-        var select = document.getElementById("bookPickerSelect");
 
-        selectedBookIds.forEach(id => {
-            var opt = select.querySelector('option[value="' + id + '"]');
-            var code = opt ? opt.getAttribute("data-code") : "MS" + id;
-            var title = opt ? opt.getAttribute("data-title") : "Sách #" + id;
-            var avail = opt ? opt.getAttribute("data-avail") : "1";
-
+        selectedBooks.forEach(function (b) {
             html += '<tr>' +
-                '<td><span class="badge" style="background: #eef2ff; color: #4338ca; font-weight: 700;">' + code + '</span></td>' +
-                '<td><strong>' + title + '</strong><input type="hidden" name="selectedBookIds" value="' + id + '" /></td>' +
-                '<td class="text-center fw-semibold text-success">' + avail + ' bản</td>' +
+                '<td><span class="badge" style="background: #eef2ff; color: #4338ca; font-weight: 700;">' + escapeHtml(b.code) + '</span></td>' +
+                '<td><strong>' + escapeHtml(b.title) + '</strong><input type="hidden" name="selectedBookIds" value="' + b.bookId + '" /></td>' +
+                '<td class="text-center fw-semibold text-success">' + b.availableQuantity + ' bản</td>' +
                 '<td class="text-center">' +
-                '<button type="button" class="btn btn-outline-danger btn-sm rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 28px; height: 28px;" onclick="removeBookFromList(\'' + id + '\')" title="Xóa cuốn này">' +
+                '<button type="button" class="btn btn-outline-danger btn-sm rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 28px; height: 28px;" onclick="removeBookFromList(\'' + b.bookId + '\')" title="Xóa cuốn này">' +
                 '<i class="bi bi-x-lg" style="font-size: 11px;"></i>' +
                 '</button>' +
                 '</td>' +
@@ -389,8 +543,9 @@
             document.getElementById("readerSearchInput").focus();
             return false;
         }
-        if (selectedBookIds.length === 0) {
-            alert("Vui lòng chọn ít nhất một cuốn sách để lập phiếu mượn!");
+        if (selectedBooks.length === 0) {
+            showBookMessage('warning', 'Vui lòng tìm và thêm ít nhất một cuốn sách vào danh sách mượn!');
+            document.getElementById("bookSearchInput").focus();
             return false;
         }
         return true;

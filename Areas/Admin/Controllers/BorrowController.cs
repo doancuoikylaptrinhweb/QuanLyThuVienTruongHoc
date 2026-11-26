@@ -137,6 +137,45 @@ namespace LibraryManagement.Areas.Admin.Controllers
             return Json(new { success = true, data = matched });
         }
 
+        // API TÌM KIẾM SÁCH THEO MÃ SÁCH, TÊN SÁCH HOẶC ISBN (DÙNG CHO Ô TÌM KIẾM KHI LẬP PHIẾU MƯỢN)
+        [HttpGet]
+        [Authorize(Roles = "Admin,Librarian")]
+        public IActionResult SearchBooks(string? keyword)
+        {
+            if (string.IsNullOrWhiteSpace(keyword))
+            {
+                return Json(new { success = true, data = Array.Empty<object>() });
+            }
+
+            string term = keyword.Trim().ToLowerInvariant();
+
+            var matched = _context.Books
+                .Where(b => b.IsActive == true)
+                .ToList()
+                .Where(b =>
+                    b.Code.ToLowerInvariant().Contains(term) ||
+                    (b.BookCode != null && b.BookCode.ToLowerInvariant().Contains(term)) ||
+                    (b.Title != null && b.Title.ToLowerInvariant().Contains(term)) ||
+                    (b.Summary != null && b.Summary.ToLowerInvariant().Contains(term)) ||
+                    (b.Contents != null && b.Contents.ToLowerInvariant().Contains(term))
+                )
+                .OrderByDescending(b => b.Code.Equals(term, StringComparison.OrdinalIgnoreCase))
+                .ThenByDescending(b => b.AvailableQuantity > 0)
+                .ThenBy(b => b.BookID)
+                .Take(10)
+                .Select(b => new
+                {
+                    bookId = b.BookID,
+                    code = b.Code,
+                    title = b.Title ?? "Sách thư viện",
+                    availableQuantity = b.AvailableQuantity,
+                    totalQuantity = b.Quantity
+                })
+                .ToList();
+
+            return Json(new { success = true, data = matched });
+        }
+
         // 3. LẬP PHIẾU MƯỢN MỚI (GET) - CHO PHÉP CHỌN NHIỀU ĐẦU SÁCH
         [HttpGet]
         [Authorize(Roles = "Admin,Librarian")]
