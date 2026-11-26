@@ -299,11 +299,6 @@ namespace LibraryManagement.Controllers
                 return Json(new { success = false, message = "Tài khoản của bạn hiện đang bị khóa!" });
             }
 
-            if (check.Password == PasswordSecurity.GoogleOAuthPlaceholder)
-            {
-                return Json(new { success = false, message = "Tài khoản này được tạo qua Google. Vui lòng nhấn 'Đăng nhập bằng Google'!" });
-            }
-
             bool isValid = PasswordSecurity.VerifyPassword(check, check.Password, password, out bool needRehash);
             if (!isValid)
             {

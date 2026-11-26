@@ -9,7 +9,6 @@ namespace LibraryManagement.Utilities
     /// </summary>
     public static class PasswordSecurity
     {
-        public const string GoogleOAuthPlaceholder = "__GOOGLE_OAUTH_NO_PASSWORD__";
         private static readonly PasswordHasher<tblUser> _hasher = new PasswordHasher<tblUser>();
 
         /// <summary>
@@ -30,7 +29,7 @@ namespace LibraryManagement.Utilities
         {
             needRehash = false;
 
-            if (string.IsNullOrEmpty(storedHash) || string.IsNullOrEmpty(providedPassword) || storedHash == GoogleOAuthPlaceholder)
+            if (string.IsNullOrEmpty(storedHash) || string.IsNullOrEmpty(providedPassword))
             {
                 return false;
             }

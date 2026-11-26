@@ -58,12 +58,6 @@ namespace LibraryManagement.Controllers
                 return View();
             }
 
-            if (check.Password == PasswordSecurity.GoogleOAuthPlaceholder)
-            {
-                ViewBag.Error = "Tài khoản này được tạo qua Google. Vui lòng nhấn 'Đăng nhập bằng Google'!";
-                return View();
-            }
-
             bool isValid = PasswordSecurity.VerifyPassword(check, check.Password, password, out bool needRehash);
             if (!isValid)
             {
