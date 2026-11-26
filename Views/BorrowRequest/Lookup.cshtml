@@ -1,0 +1,100 @@
+@using LibraryManagement.Models
+@model IList<tblBorrowTicket>
+
+@{
+    ViewData["Title"] = "Tra Cứu Phiếu Mượn & Trả Sách";
+    var ticketDetails = ViewBag.TicketDetails as Dictionary<int, List<tblBorrowDetail>> ?? new Dictionary<int, List<tblBorrowDetail>>();
+    var books = ViewBag.Books as Dictionary<long, tblBook> ?? new Dictionary<long, tblBook>();
+    var users = ViewBag.Users as Dictionary<int, tblUser> ?? new Dictionary<int, tblUser>();
+}
+
+<div class="page-banner-header">
+    <span class="badge bg-white bg-opacity-25 text-white rounded-pill px-3 py-2 mb-2">
+        <i class="bi bi-card-checklist me-1"></i> TRA CỨU TRẠNG THÁI PHIẾU
+    </span>
+    <h1 class="fw-bold mb-2" style="font-size: 2rem;">Tra Cứu Phiếu Mượn &amp; Phiếu Trả</h1>
+    <p class="text-white-50 mb-0">Nhập mã phiếu mượn (<code>PM...</code>), mã trả (<code>PT...</code>), mã bạn đọc (<code>DG...</code>) hoặc tên sách để kiểm tra.</p>
+</div>
+
+<div class="section-surface mb-4">
+    <form method="get" action="/Borrow/Lookup" class="row g-2 align-items-center">
+        <div class="col-md-9">
+            <div class="input-group input-group-lg">
+                <span class="input-group-text bg-light"><i class="bi bi-search text-primary"></i></span>
+                <input type="text" name="keyword" value="@ViewBag.Keyword" class="form-control" placeholder="VD: PM0001, PT0001, DG0001 hoặc tên bạn đọc...">
+            </div>
+        </div>
+        <div class="col-md-3 d-grid">
+            <button type="submit" class="btn btn-primary btn-lg rounded-pill fw-semibold">
+                <i class="bi bi-search me-1"></i> Tra cứu ngay
+            </button>
+        </div>
+    </form>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(ViewBag.Keyword))
+{
+    <div class="section-surface">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold mb-0">Kết quả cho "<span class="text-primary">@ViewBag.Keyword</span>" (@Model.Count phiếu)</h5>
+        </div>
+
+        @if (Model.Count == 0)
+        {
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-inbox fs-1 d-block mb-2 opacity-50"></i>
+                Không tìm thấy phiếu mượn/trả nào khớp với từ khóa của bạn.
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="font-size: 14px;">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Mã phiếu</th>
+                            <th>Độc giả</th>
+                            <th>Sách mượn</th>
+                            <th>Ngày mượn</th>
+                            <th>Hạn trả</th>
+                            <th>Mã trả</th>
+                            <th>Trạng thái</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var t in Model)
+                        {
+                            users.TryGetValue(t.UserID, out var reader);
+                            ticketDetails.TryGetValue(t.TicketID, out var details);
+                            <tr>
+                                <td><span class="badge" style="background: #eef2ff; color: #4338ca;">@t.Code</span></td>
+                                <td>
+                                    <div class="fw-semibold">@(reader?.FullName ?? reader?.UserName ?? "Bạn đọc")</div>
+                                    <small class="text-muted">@(reader?.Code ?? $"DG{t.UserID:D4}")</small>
+                                </td>
+                                <td>
+                                    @if (details != null && details.Count > 0)
+                                    {
+                                        foreach (var d in details)
+                                        {
+                                            books.TryGetValue(d.BookID, out var bk);
+                                            <div class="small fw-medium">• @(bk?.Title ?? $"Sách #{d.BookID}")</div>
+                                        }
+                                    }
+                                </td>
+                                <td>@t.BorrowDate.ToString("dd/MM/yyyy")</td>
+                                <td>@t.DueDate.ToString("dd/MM/yyyy")</td>
+                                <td>@t.DisplayReturnCode</td>
+                                <td>
+                                    <span class="badge rounded-pill @(t.Status == "Đã trả" ? "bg-success-subtle text-success" : (t.Status == "Chờ duyệt trả" ? "bg-warning-subtle text-warning-emphasis" : "bg-primary-subtle text-primary")) px-3 py-1">
+                                        @(t.Status ?? "Đang mượn")
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+}

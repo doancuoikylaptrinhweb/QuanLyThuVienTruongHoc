@@ -28,10 +28,10 @@
             </p>
 
             <!-- Big Search Box -->
-            <form method="get" action="/" id="heroSearchForm" class="hero-search-wrapper mb-3">
+            <form method="get" action="/Lookup" id="heroSearchForm" class="hero-search-wrapper mb-3">
                 <i class="bi bi-search text-muted me-2 fs-5"></i>
                 <input type="text" name="searchString" class="form-control hero-search-input" 
-                       placeholder="Nhập tên sách, tác giả, mã ISBN hoặc chuyên ngành..." 
+                       placeholder="Nhập tên sách, tác giả, mã sách hoặc chuyên ngành..." 
                        value="@ViewBag.SearchString">
                 <button type="submit" class="hero-search-btn">
                     Tìm Kiếm Sách
@@ -41,10 +41,10 @@
             <!-- Popular Quick Keywords -->
             <div class="d-flex flex-wrap align-items-center gap-2 small text-white-50">
                 <span class="text-white">Tìm kiếm phổ biến:</span>
-                <a href="/?searchString=Clean Code" class="quick-chip">Clean Code</a>
-                <a href="/?searchString=Mắt Biếc" class="quick-chip">Mắt Biếc</a>
-                <a href="/?searchString=Trí Tuệ Nhân Tạo" class="quick-chip">Trí Tuệ Nhân Tạo</a>
-                <a href="/?searchString=Đắc Nhân Tâm" class="quick-chip">Đắc Nhân Tâm</a>
+                <a href="/Lookup?searchString=Clean Code" class="quick-chip">Clean Code</a>
+                <a href="/Lookup?searchString=Mắt Biếc" class="quick-chip">Mắt Biếc</a>
+                <a href="/Lookup?searchString=Trí Tuệ Nhân Tạo" class="quick-chip">Trí Tuệ Nhân Tạo</a>
+                <a href="/Lookup?searchString=Đắc Nhân Tâm" class="quick-chip">Đắc Nhân Tâm</a>
             </div>
         </div>
 
@@ -150,7 +150,7 @@
                 idx++;
 
                 <div class="col">
-                    <a href="/?categoryId=@cat.CategoryID#kho-sach" class="category-card-modern d-flex align-items-start gap-3 p-3 h-100 rounded-4 border bg-white shadow-sm text-decoration-none">
+                    <a href="/Lookup?categoryId=@cat.CategoryID" class="category-card-modern d-flex align-items-start gap-3 p-3 h-100 rounded-4 border bg-white shadow-sm text-decoration-none">
                         <div class="cat-icon-badge rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" 
                              style="width: 44px; height: 44px; font-size: 20px; @style">
                             <i class="bi @iconClass"></i>
@@ -178,34 +178,22 @@
     </div>
 </div>
 
-<!-- 4. KHO SÁCH ĐANG PHỤC VỤ (Tra cứu & Mượn sách) -->
+<!-- 4. SÁCH NỔI BẬT & MỚI CẬP NHẬT -->
 <div id="kho-sach" class="mb-5 pt-3">
-    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
         <div>
+            <span class="section-pill-badge mb-2"><i class="bi bi-stars"></i> Sách nổi bật</span>
             <h4 class="fw-bold text-dark mb-1" style="font-size: 22px;">
                 <i class="bi bi-book-half text-primary me-2"></i> Kho Sách Đang Sẵn Sàng Phục Vụ
             </h4>
             <div class="text-muted small">
-                Hiển thị <strong>@Model.Count</strong> đầu sách có sẵn trên kệ thư viện
+                Hiển thị <strong>@Model.Count</strong> đầu sách nổi bật (Tổng <strong>@(ViewBag.TotalBooks ?? Model.Count)</strong> đầu sách trong kho)
             </div>
         </div>
 
-        <!-- Filter Category Pills -->
-        <div class="d-flex flex-wrap gap-2 mt-2 mt-md-0">
-            <a href="/#kho-sach" class="btn btn-sm rounded-pill px-3 @(ViewBag.SelectedCategory == null ? "btn-primary" : "btn-outline-secondary bg-white text-dark")">
-                Tất cả sách
-            </a>
-            @if (categories != null)
-            {
-                foreach (var cat in categories)
-                {
-                    <a href="/?categoryId=@cat.CategoryID#kho-sach" 
-                       class="btn btn-sm rounded-pill px-3 @(ViewBag.SelectedCategory == cat.CategoryID ? "btn-primary" : "btn-outline-secondary bg-white text-dark")">
-                        @cat.CategoryName
-                    </a>
-                }
-            }
-        </div>
+        <a href="/Lookup" class="btn btn-primary rounded-pill px-4 py-2 fw-semibold shadow-sm">
+            <i class="bi bi-search me-1"></i> Tra cứu nâng cao <i class="bi bi-arrow-right ms-1"></i>
+        </a>
     </div>
 
     <!-- Book Grid Cards -->
@@ -223,7 +211,7 @@
         {
             foreach (var item in Model)
             {
-                string detailUrl = Functions.TitlesSlugGeneration("/sach", item.Title, item.BookID);
+                string detailUrl = $"/Book/Detail/{item.BookID}";
                 string authorName = authors != null && authors.ContainsKey(item.AuthorID) ? authors[item.AuthorID] : "Đang cập nhật";
                 string coverImg = !string.IsNullOrEmpty(item.Images) ? item.Images : "/images/books/clean-code.svg";
 

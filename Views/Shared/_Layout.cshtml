@@ -62,59 +62,67 @@
             </button>
 
             <!-- Navbar Links & Search -->
+            @{
+                var reqPath = Context.Request.Path.Value?.ToLowerInvariant() ?? "/";
+                bool isHome = reqPath == "/" || reqPath == "/home" || reqPath == "/home/index";
+                bool isLookup = reqPath.StartsWith("/lookup");
+                bool isRules = reqPath.StartsWith("/rules");
+                bool isAbout = reqPath.StartsWith("/about");
+                bool isBorrowLookup = reqPath.StartsWith("/borrow/lookup");
+            }
             <div class="collapse navbar-collapse" id="clientNavbarContent">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0 gap-1">
                     <li class="nav-item">
-                        <a class="nav-link nav-link-modern active" href="/">
+                        <a class="nav-link nav-link-modern @(isHome ? "active" : "")" href="/Home">
                             <i class="bi bi-house"></i> Trang chủ
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link nav-link-modern" href="#kho-sach">
+                        <a class="nav-link nav-link-modern @(isLookup ? "active" : "")" href="/Lookup">
                             <i class="bi bi-search"></i> Tra cứu sách
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link nav-link-modern" href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#noiQuyModal">
-                            <i class="bi bi-journal-text"></i> Nội quy mượn trả
+                        <a class="nav-link nav-link-modern @(isRules ? "active" : "")" href="/Rules">
+                            <i class="bi bi-journal-text"></i> Nội quy
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link nav-link-modern" href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#gioiThieuModal">
+                        <a class="nav-link nav-link-modern @(isAbout ? "active" : "")" href="/About">
                             <i class="bi bi-info-circle"></i> Giới thiệu
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-modern @(isBorrowLookup ? "active" : "")" href="/Borrow/Lookup">
+                            <i class="bi bi-card-checklist"></i> Tra cứu phiếu
                         </a>
                     </li>
                 </ul>
 
                 <!-- Navbar Quick Search -->
-                <form method="get" action="/" class="d-flex position-relative me-3 my-2 my-lg-0">
+                <form method="get" action="/Lookup" class="d-flex position-relative me-3 my-2 my-lg-0">
                     <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
-                    <input type="text" name="searchString" class="nav-search-input" placeholder="Tìm tên sách, ISBN..." value="@ViewBag.SearchString">
+                    <input type="text" name="searchString" class="nav-search-input" placeholder="Tìm tên sách, mã sách..." value="@ViewBag.SearchString">
                 </form>
 
                 <!-- Khu vực điều khiển người dùng (Tách riêng khách vãng lai & Admin) -->
                 <div class="d-flex align-items-center gap-2 flex-wrap">
                     @if (!Functions.IsLogin())
                     {
-                        <!-- TRẠNG THÁI KHÁCH TRUY CẬP (GUEST): HOÀN TOÀN KHÔNG HIỆN THÔNG TIN ADMIN -->
-                        <button type="button" class="btn-ticket-pill" data-bs-toggle="modal" data-bs-target="#myTicketsModal">
-                            <i class="bi bi-card-checklist text-primary"></i> Tra cứu phiếu mượn
-                        </button>
-                        
                         <div class="d-flex align-items-center gap-2">
-                            <button type="button" class="btn btn-outline-primary rounded-pill px-3 py-2 fw-semibold d-flex align-items-center gap-1 shadow-sm" onclick="openAuthModal('login')">
+                            <a href="/Auth/Login" class="btn btn-outline-primary rounded-pill px-3 py-2 fw-semibold d-flex align-items-center gap-1 shadow-sm text-decoration-none">
                                 <i class="bi bi-box-arrow-in-right"></i> Đăng Nhập
-                            </button>
-                            <button type="button" class="btn btn-primary rounded-pill px-3 py-2 fw-semibold d-flex align-items-center gap-1 shadow-sm" onclick="openAuthModal('register')">
+                            </a>
+                            <a href="/Auth/Register" class="btn btn-primary rounded-pill px-3 py-2 fw-semibold d-flex align-items-center gap-1 shadow-sm text-decoration-none">
                                 <i class="bi bi-person-plus"></i> Đăng Ký
-                            </button>
+                            </a>
                         </div>
                     }
                     else if (Functions._Role == "Reader")
                     {
-                        <!-- TRẠNG THÁI ĐỘC GIẢ / BẠN ĐỌC ĐÃ ĐĂNG NHẬP (KHÔNG HIỆN ADMIN) -->
-                        <a href="/BorrowRequest/MyRequests" class="btn-ticket-pill text-decoration-none">
-                            <i class="bi bi-card-checklist text-primary"></i> Phiếu mượn của tôi
+                        <!-- TRẠNG THÁI ĐỘC GIẢ / BẠN ĐỌC ĐÃ ĐĂNG NHẬP -->
+                        <a href="/Profile" class="btn-ticket-pill text-decoration-none">
+                            <i class="bi bi-person-lines-fill text-primary"></i> Hồ sơ &amp; Phiếu mượn
                         </a>
 
                         <div class="dropdown">
@@ -133,18 +141,18 @@
                                 </li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
-                                    <a class="dropdown-item d-flex align-items-center gap-2" href="/BorrowRequest/MyRequests">
-                                        <i class="bi bi-clock-history text-primary"></i> Lịch sử &amp; Yêu cầu mượn
+                                    <a class="dropdown-item d-flex align-items-center gap-2" href="/Profile">
+                                        <i class="bi bi-person-badge text-primary"></i> Hồ sơ &amp; Lịch sử mượn trả
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item d-flex align-items-center gap-2" href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#myTicketsModal">
-                                        <i class="bi bi-journal-check text-success"></i> Tra cứu phiếu mượn cá nhân
+                                    <a class="dropdown-item d-flex align-items-center gap-2" href="/Borrow/Lookup">
+                                        <i class="bi bi-journal-check text-success"></i> Tra cứu phiếu mượn
                                     </a>
                                 </li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
-                                    <a class="dropdown-item d-flex align-items-center gap-2 text-danger" href="/Home/Logout">
+                                    <a class="dropdown-item d-flex align-items-center gap-2 text-danger" href="/Auth/Logout">
                                         <i class="bi bi-box-arrow-right"></i> Đăng xuất
                                     </a>
                                 </li>
@@ -174,7 +182,7 @@
                                 </li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
-                                    <a class="dropdown-item d-flex align-items-center gap-2 text-danger" href="/Home/Logout">
+                                    <a class="dropdown-item d-flex align-items-center gap-2 text-danger" href="/Auth/Logout">
                                         <i class="bi bi-box-arrow-right"></i> Đăng xuất
                                     </a>
                                 </li>
@@ -229,10 +237,11 @@
                 <div class="col-sm-6 col-lg-4">
                     <h6 class="fw-bold text-dark mb-3">Dành Cho Bạn Đọc</h6>
                     <ul class="list-unstyled text-muted small d-flex flex-column gap-2 mb-0">
-                        <li><a href="/" class="text-decoration-none text-muted"><i class="bi bi-chevron-right me-1 text-primary"></i> Trang chủ cổng thư viện</a></li>
-                        <li><a href="#kho-sach" class="text-decoration-none text-muted"><i class="bi bi-chevron-right me-1 text-primary"></i> Tra cứu danh mục kho sách</a></li>
-                        <li><a href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#noiQuyModal" class="text-decoration-none text-muted"><i class="bi bi-chevron-right me-1 text-primary"></i> Nội quy mượn trả tài liệu</a></li>
-                        <li><a href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#myTicketsModal" class="text-decoration-none text-muted"><i class="bi bi-chevron-right me-1 text-primary"></i> Tra cứu phiếu mượn cá nhân</a></li>
+                        <li><a href="/Home" class="text-decoration-none text-muted"><i class="bi bi-chevron-right me-1 text-primary"></i> Trang chủ cổng thư viện</a></li>
+                        <li><a href="/Lookup" class="text-decoration-none text-muted"><i class="bi bi-chevron-right me-1 text-primary"></i> Tra cứu sách nâng cao</a></li>
+                        <li><a href="/Rules" class="text-decoration-none text-muted"><i class="bi bi-chevron-right me-1 text-primary"></i> Nội quy mượn trả tài liệu</a></li>
+                        <li><a href="/About" class="text-decoration-none text-muted"><i class="bi bi-chevron-right me-1 text-primary"></i> Giới thiệu thư viện</a></li>
+                        <li><a href="/Borrow/Lookup" class="text-decoration-none text-muted"><i class="bi bi-chevron-right me-1 text-primary"></i> Tra cứu phiếu mượn</a></li>
                     </ul>
                 </div>
             </div>

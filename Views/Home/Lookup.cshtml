@@ -1,0 +1,149 @@
+@using LibraryManagement.Models
+@model IList<tblBook>
+
+@{
+    ViewData["Title"] = "Tra Cứu Sách Nâng Cao - Thư Viện Số";
+    var authors = ViewBag.Authors as Dictionary<int, string> ?? new Dictionary<int, string>();
+    var categories = ViewBag.Categories as List<tblCategory> ?? new List<tblCategory>();
+    var authorsList = ViewBag.AuthorsList as List<tblAuthor> ?? new List<tblAuthor>();
+    int? selectedCat = ViewBag.SelectedCategory as int?;
+    int? selectedAuthor = ViewBag.SelectedAuthor as int?;
+    bool onlyAvailable = ViewBag.OnlyAvailable == true;
+}
+
+<div class="page-banner-header">
+    <div class="row align-items-center g-3">
+        <div class="col-lg-8">
+            <span class="badge bg-white bg-opacity-25 text-white rounded-pill px-3 py-2 mb-2">
+                <i class="bi bi-search me-1"></i> TRA CỨU HỌC LIỆU TRỰC TUYẾN
+            </span>
+            <h1 class="fw-bold mb-2" style="font-size: 2rem;">Tra Cứu Kho Sách Thư Viện</h1>
+            <p class="text-white-50 mb-0">Tìm kiếm theo tên sách, mã sách (MS...), tác giả, mô tả, thể loại và trạng thái sẵn có trên kệ.</p>
+        </div>
+        <div class="col-lg-4 text-lg-end">
+            <a href="/Borrow/Lookup" class="btn btn-light rounded-pill px-4 py-2 fw-semibold text-primary shadow-sm">
+                <i class="bi bi-card-checklist me-1"></i> Tra cứu phiếu mượn
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Bộ lọc nâng cao -->
+<div class="section-surface mb-4">
+    <form method="get" action="/Lookup" class="row g-3 align-items-end">
+        <div class="col-12 col-md-4">
+            <label class="form-label fw-semibold small text-secondary">Từ khóa tìm kiếm</label>
+            <div class="input-group">
+                <span class="input-group-text bg-light"><i class="bi bi-search text-primary"></i></span>
+                <input type="text" name="searchString" value="@ViewBag.SearchString" class="form-control" placeholder="Tên sách, mã sách (MS0001), tác giả...">
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-md-3">
+            <label class="form-label fw-semibold small text-secondary">Thể loại</label>
+            <select name="categoryId" class="form-select">
+                <option value="">-- Tất cả thể loại --</option>
+                @foreach (var cat in categories)
+                {
+                    <option value="@cat.CategoryID" selected="@(selectedCat == cat.CategoryID)">@cat.CategoryName</option>
+                }
+            </select>
+        </div>
+        <div class="col-12 col-sm-6 col-md-3">
+            <label class="form-label fw-semibold small text-secondary">Tác giả</label>
+            <select name="authorId" class="form-select">
+                <option value="">-- Tất cả tác giả --</option>
+                @foreach (var au in authorsList)
+                {
+                    <option value="@au.AuthorID" selected="@(selectedAuthor == au.AuthorID)">@au.AuthorName</option>
+                }
+            </select>
+        </div>
+        <div class="col-12 col-md-2 d-flex flex-column gap-2">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="onlyAvailable" value="true" id="onlyAvailableCheck" checked="@onlyAvailable">
+                <label class="form-check-label small fw-semibold" for="onlyAvailableCheck">Chỉ sách còn</label>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary rounded-pill flex-grow-1 fw-semibold">
+                    <i class="bi bi-funnel me-1"></i> Tìm
+                </button>
+                <a href="/Lookup" class="btn btn-outline-secondary rounded-pill" title="Xóa bộ lọc">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Kết quả tra cứu -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="fw-bold text-dark mb-0">
+        Kết quả tra cứu: <span class="text-primary">@Model.Count</span> đầu sách
+    </h5>
+    <a href="/Home" class="text-decoration-none small fw-semibold">
+        <i class="bi bi-arrow-left me-1"></i> Về trang chủ
+    </a>
+</div>
+
+<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 mb-5">
+    @if (Model.Count == 0)
+    {
+        <div class="col-12">
+            <div class="section-surface text-center py-5">
+                <i class="bi bi-inbox text-muted" style="font-size: 3.5rem;"></i>
+                <h5 class="fw-bold text-dark mt-3">Không tìm thấy cuốn sách nào phù hợp</h5>
+                <p class="text-muted small">Thử bỏ bớt điều kiện lọc hoặc tìm với từ khóa khác.</p>
+                <a href="/Lookup" class="btn btn-primary rounded-pill px-4">Xem toàn bộ kho sách</a>
+            </div>
+        </div>
+    }
+    else
+    {
+        foreach (var item in Model)
+        {
+            string detailUrl = $"/Book/Detail/{item.BookID}";
+            string authorName = authors.ContainsKey(item.AuthorID) ? authors[item.AuthorID] : "Đang cập nhật";
+            string coverImg = !string.IsNullOrEmpty(item.Images) ? item.Images : "/images/books/clean-code.svg";
+
+            <div class="col">
+                <div class="book-card-modern">
+                    <div class="book-card-cover">
+                        <a href="@detailUrl">
+                            <img src="@coverImg" alt="@item.Title" onerror="this.src='/admin/assets/img/card.jpg';">
+                        </a>
+                        <div class="position-absolute top-0 start-0 m-2">
+                            <span class="badge" style="background: rgba(37, 99, 235, 0.92); font-size: 11px; font-weight: 700;">@item.Code</span>
+                        </div>
+                        <div class="position-absolute top-0 end-0 m-2">
+                            @if (item.AvailableQuantity > 0)
+                            {
+                                <span class="badge bg-success" style="font-size: 11px;">Còn @item.AvailableQuantity cuốn</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger" style="font-size: 11px;">Hết sách</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="p-3 d-flex flex-column flex-grow-1">
+                        <h6 class="fw-bold mb-1" style="font-size: 14.5px; line-height: 1.35;">
+                            <a href="@detailUrl" class="text-decoration-none text-dark">@item.Title</a>
+                        </h6>
+                        <div class="text-muted small mb-2">
+                            <i class="bi bi-person text-primary me-1"></i> @authorName
+                        </div>
+                        <p class="text-secondary small mb-3 flex-grow-1" style="font-size: 12.5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                            @(string.IsNullOrWhiteSpace(item.Summary) ? "Tài liệu học tập và tham khảo chính thức tại thư viện." : item.Summary)
+                        </p>
+                        <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                            <span class="badge bg-light text-secondary border">Năm @item.PublishYear</span>
+                            <a href="@detailUrl" class="btn btn-sm btn-primary rounded-pill px-3 fw-semibold">
+                                Chi tiết <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
