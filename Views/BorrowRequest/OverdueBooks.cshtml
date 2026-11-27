@@ -1,0 +1,129 @@
+@using LibraryManagement.Models
+@model List<ReaderOverdueBookVM>
+
+@{
+    ViewData["Title"] = "Danh Sách Sách Quá Hạn Chưa Trả - Thư Viện Số";
+    var user = ViewBag.CurrentUser as tblUser;
+}
+
+<div class="page-banner-header">
+    <div class="row align-items-center g-3">
+        <div class="col-md-8">
+            <span class="badge bg-danger bg-opacity-75 text-white rounded-pill px-3 py-2 mb-2">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i> CẢNH BÁO QUÁ HẠN CÁ NHÂN
+            </span>
+            <h1 class="fw-bold mb-1" style="font-size: 1.9rem;">Danh Sách Sách Quá Hạn Chưa Trả</h1>
+            <p class="text-white-50 mb-0">
+                Độc giả: <strong class="text-white">@(user?.FullName ?? user?.UserName)</strong> &bull;
+                Mã bạn đọc: <strong class="text-white">@(user?.Code)</strong>
+            </p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <a href="/Profile" class="btn btn-light rounded-pill px-4 py-2 fw-semibold text-primary shadow-sm">
+                <i class="bi bi-person-lines-fill me-1"></i> Về Hồ sơ &amp; Phiếu mượn
+            </a>
+        </div>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="section-surface">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+        <h5 class="fw-bold text-dark mb-0">
+            <i class="bi bi-journal-x text-danger me-2"></i>Các cuốn sách quá hạn chưa hoàn trả
+            <span class="badge bg-danger rounded-pill ms-2">@Model.Count cuốn</span>
+        </h5>
+        <a href="/Lookup" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold">
+            <i class="bi bi-search me-1"></i> Tra cứu kho sách
+        </a>
+    </div>
+
+    @if (Model.Count == 0)
+    {
+        <div class="text-center py-5">
+            <div class="rounded-circle bg-success-subtle text-success d-inline-flex align-items-center justify-content-center mb-3" style="width: 72px; height: 72px;">
+                <i class="bi bi-check2-circle fs-1"></i>
+            </div>
+            <h5 class="fw-bold text-dark">Không có sách quá hạn chưa trả</h5>
+            <p class="text-muted small mb-3">Tất cả phiếu mượn của bạn đều đang đúng hạn hoặc đã hoàn trả đầy đủ.</p>
+            <a href="/Profile" class="btn btn-primary rounded-pill px-4 fw-semibold">Xem lịch sử mượn trả</a>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-danger border-0 rounded-4 mb-3 small">
+            <i class="bi bi-info-circle-fill me-1"></i>
+            Theo quy định thư viện, khi có sách quá hạn chưa trả, bạn sẽ tạm thời chưa thể đăng ký mượn thêm sách mới cho đến khi hoàn tất trả sách tại quầy.
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size: 14px;">
+                <thead class="table-light">
+                    <tr>
+                        <th>Mã phiếu</th>
+                        <th>Mã sách</th>
+                        <th>Tên sách</th>
+                        <th>Ngày mượn</th>
+                        <th>Hạn trả</th>
+                        <th>Quá hạn</th>
+                        <th>Trạng thái phiếu</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        string sevBadge = item.SeverityLevel == "Nghiêm trọng"
+                            ? "bg-danger text-white"
+                            : (item.SeverityLevel == "Cảnh báo" ? "bg-warning text-dark" : "bg-info-subtle text-info-emphasis");
+
+                        <tr>
+                            <td><span class="badge" style="background: #eef2ff; color: #4338ca;">@item.TicketCode</span></td>
+                            <td><span class="badge bg-light text-primary border">@item.BookCode</span></td>
+                            <td class="fw-semibold text-dark">@item.BookTitle</td>
+                            <td>@item.BorrowDate.ToString("dd/MM/yyyy")</td>
+                            <td class="text-danger fw-semibold">@item.DueDate.ToString("dd/MM/yyyy")</td>
+                            <td>
+                                <span class="badge @sevBadge rounded-pill px-3 py-1">
+                                    Quá hạn @item.OverdueDays ngày (@item.SeverityLevel)
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge rounded-pill @(item.TicketStatus == "Chờ duyệt trả" ? "bg-warning-subtle text-warning-emphasis" : "bg-danger-subtle text-danger") px-3 py-1">
+                                    @item.TicketStatus
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                @if (item.CanRequestReturn)
+                                {
+                                    <form method="post" action="/BorrowRequest/RequestReturn/@item.TicketID" class="d-inline" onsubmit="return confirm('Xác nhận gửi yêu cầu trả sách cho phiếu @item.TicketCode?');">
+                                        <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3 fw-semibold">
+                                            <i class="bi bi-arrow-return-left me-1"></i> Gửi yêu cầu trả
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">Đang chờ thủ thư duyệt trả</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
