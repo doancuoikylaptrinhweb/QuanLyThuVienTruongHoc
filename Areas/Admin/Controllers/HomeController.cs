@@ -25,10 +25,19 @@ namespace LibraryManagement.Areas.Admin.Controllers
             // Đồng bộ cảnh báo quá hạn tự động (gộp theo phiếu mượn, không trùng lặp)
             OverdueWarningService.SyncOverdueWarnings(_context);
 
-            // 1. Thống kê số liệu thời gian thực từ Database
-            int bookCount = _context.Books.Count();
-            int copyCount = _context.Books.Sum(b => (int?)b.Quantity) ?? 0;
-            int borrowingCount = _context.BorrowTickets.Count(t => t.Status == "Đang mượn" || t.Status == "Trả một phần" || t.Status == "Chờ duyệt trả");
+            // 1. Thống kê số liệu thời gian thực từ Database (chỉ tính sách đang lưu hành IsActive == true)
+            int bookCount = _context.Books.Count(b => b.IsActive == true);
+            int copyCount = _context.Books.Where(b => b.IsActive == true).Sum(b => (int?)b.Quantity) ?? 0;
+
+            var activeBorrowStatuses = new[] { "Đang mượn", "Trả một phần", "Quá hạn", "Chờ duyệt trả" };
+            int borrowingTicketCount = _context.BorrowTickets
+                .Count(t => t.Status != null && activeBorrowStatuses.Contains(t.Status));
+
+            // Số sách thực tế đang được mượn và chưa trả (không tính sách đã trả IsReturned == true)
+            int borrowingBookCount = (from d in _context.BorrowDetails
+                                      join t in _context.BorrowTickets on d.TicketID equals t.TicketID
+                                      where !d.IsReturned && t.Status != null && activeBorrowStatuses.Contains(t.Status)
+                                      select d.DetailID).Count();
 
             var activeWarnings = _context.OverdueWarnings
                 .Where(w => w.WarningStatus != OverdueWarningService.StatusReturned)
@@ -37,11 +46,12 @@ namespace LibraryManagement.Areas.Admin.Controllers
 
             int overdueCount = activeWarnings.Count;
             int overdueBookCount = activeWarnings.Sum(w => w.OverdueBookCount);
-            int pendingCount = _context.BorrowTickets.Count(t => t.Status == "Chờ duyệt");
+            int pendingCount = _context.BorrowTickets.Count(t => t.Status == "Pending" || t.Status == "Chờ duyệt");
 
             ViewBag.TotalBooks = bookCount;
             ViewBag.TotalCopies = copyCount;
-            ViewBag.TotalBorrowing = borrowingCount;
+            ViewBag.TotalBorrowing = borrowingTicketCount;
+            ViewBag.TotalBorrowingBooks = borrowingBookCount;
             ViewBag.TotalOverdue = overdueCount;
             ViewBag.TotalOverdueBooks = overdueBookCount;
             ViewBag.OverdueReminderCount = activeWarnings.Count(w => w.SeverityLevel == OverdueWarningService.SeverityReminder);
@@ -49,12 +59,23 @@ namespace LibraryManagement.Areas.Admin.Controllers
             ViewBag.OverdueCriticalCount = activeWarnings.Count(w => w.SeverityLevel == OverdueWarningService.SeverityCritical);
             ViewBag.TotalPending = pendingCount;
 
-            // 2. Dữ liệu biểu đồ Xu hướng Mượn & Trả (6 tháng gần nhất từ Database)
+            // 2. Dữ liệu biểu đồ Xu hướng Mượn & Trả (6 tháng gần nhất theo từng lượt sách trong SQL Server)
             var trendMonths = new List<string>();
             var borrowCounts = new List<int>();
             var returnCounts = new List<int>();
 
-            DateTime now = DateTime.Now;
+            var excludedBorrowStatuses = new[] { "Pending", "Chờ duyệt", "Từ chối", "Đã hủy" };
+            var detailWithTickets = (from d in _context.BorrowDetails
+                                     join t in _context.BorrowTickets on d.TicketID equals t.TicketID
+                                     select new
+                                     {
+                                         t.BorrowDate,
+                                         t.Status,
+                                         d.IsReturned,
+                                         EffectiveReturnDate = d.ReturnDate ?? t.ReturnDate
+                                     }).ToList();
+
+            DateTime now = DateTime.Today;
             for (int i = 5; i >= 0; i--)
             {
                 var targetMonth = now.AddMonths(-i);
@@ -63,8 +84,16 @@ namespace LibraryManagement.Areas.Admin.Controllers
 
                 trendMonths.Add($"T{month}/{year}");
 
-                int bCount = _context.BorrowTickets.Count(t => t.BorrowDate.Year == year && t.BorrowDate.Month == month);
-                int rCount = _context.BorrowTickets.Count(t => t.ReturnDate.HasValue && t.ReturnDate.Value.Year == year && t.ReturnDate.Value.Month == month);
+                int bCount = detailWithTickets.Count(x =>
+                    x.BorrowDate.Year == year &&
+                    x.BorrowDate.Month == month &&
+                    (x.Status == null || !excludedBorrowStatuses.Contains(x.Status)));
+
+                int rCount = detailWithTickets.Count(x =>
+                    x.IsReturned &&
+                    x.EffectiveReturnDate.HasValue &&
+                    x.EffectiveReturnDate.Value.Year == year &&
+                    x.EffectiveReturnDate.Value.Month == month);
 
                 borrowCounts.Add(bCount);
                 returnCounts.Add(rCount);
@@ -74,28 +103,34 @@ namespace LibraryManagement.Areas.Admin.Controllers
             ViewBag.BorrowTrend = borrowCounts.ToArray();
             ViewBag.ReturnTrend = returnCounts.ToArray();
 
-            // 3. Dữ liệu biểu đồ Cơ cấu Thể loại Sách (100% từ Database)
-            var categories = _context.Categories.Where(c => c.IsActive == true).ToList();
+            // 3. Dữ liệu biểu đồ Cơ cấu Thể loại Sách (100% từ Database, chỉ tính sách IsActive == true)
+            var categories = _context.Categories.Where(c => c.IsActive == true).OrderBy(c => c.CategoryID).ToList();
+            var activeBookCountsByCat = _context.Books
+                .Where(b => b.IsActive == true)
+                .GroupBy(b => b.CategoryID)
+                .ToDictionary(g => g.Key, g => g.Count());
+
             var categoryLabels = new List<string>();
             var categoryData = new List<int>();
 
             foreach (var cat in categories)
             {
-                int count = _context.Books.Count(b => b.CategoryID == cat.CategoryID);
-                if (count > 0 || categories.Count <= 6)
+                int count = activeBookCountsByCat.ContainsKey(cat.CategoryID) ? activeBookCountsByCat[cat.CategoryID] : 0;
+                if (count > 0)
                 {
                     categoryLabels.Add(cat.CategoryName ?? "Khác");
                     categoryData.Add(count);
                 }
             }
 
-            // Nếu DB chưa có thể loại nào
-            if (categoryLabels.Count == 0)
+            bool hasCategoryData = categoryData.Sum() > 0;
+            if (!hasCategoryData)
             {
-                categoryLabels.Add("Chưa có danh mục");
+                categoryLabels.Add("Chưa có sách trong kho");
                 categoryData.Add(0);
             }
 
+            ViewBag.HasCategoryData = hasCategoryData;
             ViewBag.CategoryLabels = categoryLabels.ToArray();
             ViewBag.CategoryData = categoryData.ToArray();
 
