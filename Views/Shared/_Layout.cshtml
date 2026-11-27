@@ -125,6 +125,51 @@
                             <i class="bi bi-person-lines-fill text-primary"></i> Hồ sơ &amp; Phiếu mượn
                         </a>
 
+                        <!-- CHUÔNG THÔNG BÁO ĐỘC GIẢ -->
+                        <div class="dropdown" id="readerNotificationWrapper">
+                            <button class="btn btn-light border rounded-circle position-relative d-flex align-items-center justify-content-center shadow-sm"
+                                    type="button"
+                                    id="readerNotificationBtn"
+                                    data-bs-toggle="dropdown"
+                                    data-bs-auto-close="outside"
+                                    aria-expanded="false"
+                                    style="width: 38px; height: 38px;"
+                                    title="Thông báo nhắc nhở">
+                                <i class="bi bi-bell-fill text-primary fs-6"></i>
+                                <span id="readerNotificationBadge"
+                                      class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none"
+                                      style="font-size: 10px; min-width: 18px;">
+                                    0
+                                </span>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-2 p-0 rounded-4 overflow-hidden"
+                                 id="readerNotificationMenu"
+                                 style="width: 370px; max-width: 92vw;">
+                                <div class="d-flex align-items-center justify-content-between px-3 py-2 bg-light border-bottom">
+                                    <span class="fw-bold text-dark small">
+                                        <i class="bi bi-bell text-primary me-1"></i> Thông báo
+                                    </span>
+                                    <button type="button"
+                                            id="markAllReadBtn"
+                                            class="btn btn-link btn-sm text-decoration-none p-0 fw-semibold"
+                                            style="font-size: 12px;"
+                                            onclick="markAllReaderNotificationsRead()">
+                                        Đánh dấu tất cả đã đọc
+                                    </button>
+                                </div>
+                                <div id="readerNotificationList" style="max-height: 360px; overflow-y: auto;">
+                                    <div class="text-center text-muted py-4 small">
+                                        Đang tải thông báo...
+                                    </div>
+                                </div>
+                                <div class="border-top bg-light text-center py-2">
+                                    <a href="/Profile" class="text-decoration-none small fw-semibold text-primary">
+                                        Xem tất cả tại Hồ sơ &amp; Phiếu mượn <i class="bi bi-arrow-right-short"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="dropdown">
                             <a class="d-flex align-items-center gap-2 text-decoration-none dropdown-toggle ps-1" href="#" data-bs-toggle="dropdown">
                                 <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm" style="width: 36px; height: 36px; background: #059669; font-size: 14px;">
@@ -1067,6 +1112,136 @@
                 alertBox.classList.remove("d-none");
             });
         }
+
+        function escapeNotifHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function updateReaderNotificationBadge(unreadCount) {
+            var badge = document.getElementById('readerNotificationBadge');
+            if (!badge) return;
+            if (unreadCount > 0) {
+                badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+                badge.classList.remove('d-none');
+            } else {
+                badge.textContent = '0';
+                badge.classList.add('d-none');
+            }
+        }
+
+        function loadReaderNotifications() {
+            var listEl = document.getElementById('readerNotificationList');
+            if (!listEl) return;
+
+            fetch('/Notification/GetMyNotifications')
+                .then(res => res.json())
+                .then(data => {
+                    if (!data.success) return;
+                    updateReaderNotificationBadge(data.unreadCount || 0);
+
+                    if (!data.items || data.items.length === 0) {
+                        listEl.innerHTML = '<div class="text-center text-muted py-4 px-3 small"><i class="bi bi-bell-slash d-block fs-4 mb-1 opacity-50"></i>Bạn chưa có thông báo nhắc nhở nào.</div>';
+                        return;
+                    }
+
+                    var html = '';
+                    data.items.forEach(function (item) {
+                        var bgClass = item.isRead ? 'bg-white' : 'bg-primary-subtle bg-opacity-25';
+                        var dotHtml = item.isRead
+                            ? ''
+                            : '<span class="badge bg-danger rounded-circle p-1 me-1" title="Chưa đọc" style="width:8px;height:8px;display:inline-block;"></span>';
+                        var sevBadge = item.severityLevel === 'Nghiêm trọng'
+                            ? 'bg-danger-subtle text-danger'
+                            : (item.severityLevel === 'Cảnh báo' ? 'bg-warning-subtle text-warning-emphasis' : 'bg-info-subtle text-info-emphasis');
+
+                        var markBtn = item.isRead
+                            ? '<span class="text-muted" style="font-size:11px;"><i class="bi bi-check2-all"></i> Đã đọc</span>'
+                            : '<button type="button" class="btn btn-link btn-sm p-0 text-primary text-decoration-none" style="font-size:11px;" onclick="markReaderNotificationRead(event, ' + item.notificationID + ', false)"><i class="bi bi-check2"></i> Đánh dấu đã đọc</button>';
+
+                        html += '<div class="p-3 border-bottom ' + bgClass + '" style="cursor:pointer; transition: background 0.15s;" onclick="openReaderNotification(' + item.notificationID + ', ' + (item.isRead ? 'true' : 'false') + ')">'
+                            + '<div class="d-flex justify-content-between align-items-start gap-2 mb-1">'
+                            + '<div class="fw-bold text-dark small">' + dotHtml + escapeNotifHtml(item.title) + '</div>'
+                            + '<span class="badge ' + sevBadge + ' rounded-pill flex-shrink-0" style="font-size:10px;">' + escapeNotifHtml(item.severityLevel) + '</span>'
+                            + '</div>'
+                            + '<div class="small text-secondary mb-1"><strong>Sách:</strong> ' + escapeNotifHtml(item.bookTitles) + '</div>'
+                            + '<div class="d-flex flex-wrap gap-2 text-muted mb-2" style="font-size:11.5px;">'
+                            + '<span><i class="bi bi-ticket-perforated"></i> Mã phiếu: <strong>' + escapeNotifHtml(item.ticketCode) + '</strong></span>'
+                            + '<span class="text-danger"><i class="bi bi-clock-history"></i> Quá hạn: <strong>' + item.overdueDays + ' ngày</strong></span>'
+                            + '<span><i class="bi bi-calendar-event"></i> Hạn trả: <strong>' + escapeNotifHtml(item.dueDate) + '</strong></span>'
+                            + '</div>'
+                            + '<div class="d-flex justify-content-between align-items-center">'
+                            + '<span class="text-muted" style="font-size:11px;">' + escapeNotifHtml(item.createdDate) + '</span>'
+                            + markBtn
+                            + '</div>'
+                            + '</div>';
+                    });
+
+                    listEl.innerHTML = html;
+                })
+                .catch(function () {
+                    listEl.innerHTML = '<div class="text-center text-danger py-3 small">Không thể tải thông báo.</div>';
+                });
+        }
+
+        function markReaderNotificationRead(e, id, redirectAfter) {
+            if (e) e.stopPropagation();
+            fetch('/Notification/MarkAsRead?id=' + encodeURIComponent(id), {
+                method: 'POST'
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        updateReaderNotificationBadge(data.unreadCount || 0);
+                        if (redirectAfter) {
+                            window.location.href = '/Profile';
+                        } else {
+                            loadReaderNotifications();
+                        }
+                    } else if (redirectAfter) {
+                        window.location.href = '/Profile';
+                    }
+                })
+                .catch(function () {
+                    if (redirectAfter) window.location.href = '/Profile';
+                });
+        }
+
+        function openReaderNotification(id, isRead) {
+            if (isRead) {
+                window.location.href = '/Profile';
+                return;
+            }
+            markReaderNotificationRead(null, id, true);
+        }
+
+        function markAllReaderNotificationsRead() {
+            fetch('/Notification/MarkAllAsRead', {
+                method: 'POST'
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        updateReaderNotificationBadge(0);
+                        loadReaderNotifications();
+                    }
+                });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            var bellBtn = document.getElementById('readerNotificationBtn');
+            if (bellBtn) {
+                loadReaderNotifications();
+                bellBtn.addEventListener('show.bs.dropdown', function () {
+                    loadReaderNotifications();
+                });
+            }
+        });
     </script>
 
 </body>

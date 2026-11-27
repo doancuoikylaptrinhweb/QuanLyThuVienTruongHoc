@@ -141,6 +141,14 @@ namespace LibraryManagement.Areas.Admin.Controllers
             ViewBag.DetailsByTicket = detailsByTicket;
             ViewBag.Books = bookDict;
 
+            DateTime cooldownThreshold = DateTime.Now.AddHours(-24);
+            var recentlyRemindedTicketIds = _context.ReaderNotifications
+                .Where(n => n.CreatedDate >= cooldownThreshold)
+                .Select(n => n.TicketID)
+                .Distinct()
+                .ToHashSet();
+            ViewBag.RecentlyRemindedTicketIds = recentlyRemindedTicketIds;
+
             return View(resultList);
         }
 
@@ -160,24 +168,116 @@ namespace LibraryManagement.Areas.Admin.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
+            var ticket = _context.BorrowTickets.FirstOrDefault(t => t.TicketID == warning.TicketID);
+            if (ticket == null)
+            {
+                TempData["Error"] = "Không tìm thấy phiếu mượn tương ứng với cảnh báo này!";
+                return RedirectToAction(nameof(Index));
+            }
+
+            int readerId = ticket.UserID > 0 ? ticket.UserID : warning.UserID;
+            var reader = _context.Users.FirstOrDefault(u => u.UserID == readerId);
+            if (reader == null)
+            {
+                TempData["Error"] = "Không tìm thấy tài khoản độc giả của phiếu mượn này!";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // Lấy chính xác các cuốn sách chưa trả thuộc phiếu mượn
+            var unreturnedBookTitles = (from d in _context.BorrowDetails
+                                        join b in _context.Books on d.BookID equals b.BookID
+                                        where d.TicketID == ticket.TicketID && !d.IsReturned
+                                        select b.Title).ToList();
+
+            if (!unreturnedBookTitles.Any() || ticket.Status == "Đã trả" || ticket.Status == "Đã hủy")
+            {
+                OverdueWarningService.SyncOverdueWarnings(_context);
+                TempData["Error"] = "Phiếu mượn này không còn sách quá hạn chưa trả!";
+                return RedirectToAction(nameof(Index));
+            }
+
+            DateTime today = DateTime.Today;
+            DateTime dueDate = ticket.DueDate.Date;
+            int overdueDays = Math.Max(1, (today - dueDate).Days);
+            if (dueDate >= today)
+            {
+                OverdueWarningService.SyncOverdueWarnings(_context);
+                TempData["Error"] = "Phiếu mượn này hiện chưa quá hạn trả!";
+                return RedirectToAction(nameof(Index));
+            }
+
+            string ticketCode = string.IsNullOrWhiteSpace(ticket.Code) ? $"PM{ticket.TicketID:D4}" : ticket.Code;
+
+            // Cơ chế chống gửi nhắc nhở trùng lặp liên tiếp (cooldown 24 giờ dựa trên thông báo thực tế đã gửi cho độc giả)
+            DateTime? latestNotifTime = _context.ReaderNotifications
+                .Where(n => n.TicketID == ticket.TicketID && n.UserID == readerId)
+                .OrderByDescending(n => n.CreatedDate)
+                .Select(n => (DateTime?)n.CreatedDate)
+                .FirstOrDefault();
+
+            if (latestNotifTime.HasValue && (DateTime.Now - latestNotifTime.Value).TotalHours < 24)
+            {
+                DateTime nextAllowed = latestNotifTime.Value.AddHours(24);
+                TempData["Error"] = $"Phiếu {ticketCode} đã được gửi thông báo nhắc nhở lúc {latestNotifTime.Value:dd/MM/yyyy HH:mm}. Vui lòng đợi đến {nextAllowed:dd/MM/yyyy HH:mm} để tránh gửi thông báo trùng lặp.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            string bookTitles = string.Join(", ", unreturnedBookTitles.Distinct());
+            if (bookTitles.Length > 980) bookTitles = bookTitles.Substring(0, 977) + "...";
+
+            string severity = OverdueWarningService.ClassifySeverity(overdueDays);
             string adminName = User.Identity?.Name ?? Functions._UserName ?? "Quản trị viên";
+            string noteText = string.IsNullOrWhiteSpace(reminderNote) ? string.Empty : reminderNote.Trim();
+            DateTime now = DateTime.Now;
+
+            warning.UserID = readerId;
+            warning.OverdueDays = overdueDays;
+            warning.OverdueBookCount = unreturnedBookTitles.Count;
+            warning.BookTitles = bookTitles;
+            warning.SeverityLevel = severity;
             warning.WarningStatus = OverdueWarningService.StatusReminded;
             warning.ReminderCount += 1;
-            warning.LastRemindedDate = DateTime.Now;
+            warning.LastRemindedDate = now;
             warning.RemindedBy = adminName;
-            if (!string.IsNullOrWhiteSpace(reminderNote))
+            if (!string.IsNullOrEmpty(noteText))
             {
-                warning.ReminderNote = reminderNote.Trim();
+                warning.ReminderNote = noteText;
             }
             else if (string.IsNullOrWhiteSpace(warning.ReminderNote))
             {
                 warning.ReminderNote = $"Đã gửi thông báo nhắc nhở lần {warning.ReminderCount}";
             }
-            warning.UpdatedDate = DateTime.Now;
+            warning.UpdatedDate = now;
+
+            string dueDateStr = ticket.DueDate.ToString("dd/MM/yyyy");
+            string message = $"Phiếu mượn {ticketCode} đã quá hạn {overdueDays} ngày (Hạn trả: {dueDateStr}). Sách chưa trả: {bookTitles}.";
+            if (!string.IsNullOrEmpty(noteText))
+            {
+                message += $" Ghi chú từ thủ thư: {noteText}";
+            }
+            if (message.Length > 1490) message = message.Substring(0, 1487) + "...";
+
+            var notification = new tblReaderNotification
+            {
+                UserID = readerId,
+                TicketID = ticket.TicketID,
+                WarningID = warning.WarningID,
+                TicketCode = ticketCode,
+                BookTitles = bookTitles,
+                OverdueDays = overdueDays,
+                DueDate = ticket.DueDate,
+                SeverityLevel = severity,
+                Title = $"Nhắc nhở quá hạn phiếu {ticketCode} ({overdueDays} ngày)",
+                Message = message,
+                IsRead = false,
+                CreatedDate = now,
+                CreatedBy = adminName
+            };
+            _context.ReaderNotifications.Add(notification);
 
             _context.SaveChanges();
 
-            TempData["Success"] = $"Đã đánh dấu nhắc nhở thành công cho cảnh báo #{warning.WarningID} (lần {warning.ReminderCount}).";
+            TempData["Success"] = $"Đã gửi thông báo nhắc nhở đến độc giả {reader.FullName ?? reader.UserName} cho phiếu {ticketCode} (lần {warning.ReminderCount}).";
             return RedirectToAction(nameof(Index));
         }
 

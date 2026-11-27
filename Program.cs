@@ -97,6 +97,28 @@ try
                     CONSTRAINT [UQ_tblOverdueWarning_TicketID] UNIQUE ([TicketID])
                 );
             END
+
+            IF OBJECT_ID('tblReaderNotification', 'U') IS NULL
+            BEGIN
+                CREATE TABLE [dbo].[tblReaderNotification] (
+                    [NotificationID] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                    [UserID] INT NOT NULL,
+                    [TicketID] INT NOT NULL,
+                    [WarningID] INT NULL,
+                    [TicketCode] NVARCHAR(50) NOT NULL DEFAULT N'',
+                    [BookTitles] NVARCHAR(1000) NOT NULL DEFAULT N'',
+                    [OverdueDays] INT NOT NULL DEFAULT 0,
+                    [DueDate] DATETIME NULL,
+                    [SeverityLevel] NVARCHAR(30) NOT NULL DEFAULT N'Nhắc nhở',
+                    [Title] NVARCHAR(200) NOT NULL DEFAULT N'',
+                    [Message] NVARCHAR(1500) NOT NULL DEFAULT N'',
+                    [IsRead] BIT NOT NULL DEFAULT 0,
+                    [ReadDate] DATETIME NULL,
+                    [CreatedDate] DATETIME NOT NULL DEFAULT GETDATE(),
+                    [CreatedBy] NVARCHAR(100) NULL
+                );
+                CREATE INDEX [IX_tblReaderNotification_User_Read] ON [dbo].[tblReaderNotification] ([UserID], [IsRead], [CreatedDate] DESC);
+            END
         ");
     }
 }

@@ -8,6 +8,7 @@
     var users = ViewBag.Users as Dictionary<int, tblUser> ?? new Dictionary<int, tblUser>();
     var detailsByTicket = ViewBag.DetailsByTicket as Dictionary<int, List<tblBorrowDetail>> ?? new Dictionary<int, List<tblBorrowDetail>>();
     var books = ViewBag.Books as Dictionary<long, tblBook> ?? new Dictionary<long, tblBook>();
+    var recentlyRemindedTicketIds = ViewBag.RecentlyRemindedTicketIds as HashSet<int> ?? new HashSet<int>();
 }
 
 <main id="main" class="main">
@@ -271,14 +272,27 @@
                                     <div class="d-flex justify-content-center gap-1">
                                         @if (w.WarningStatus != OverdueWarningService.StatusReturned)
                                         {
-                                            <button type="button"
-                                                    class="btn btn-sm btn-outline-primary rounded-3 px-2 py-1 fw-semibold"
-                                                    title="Đánh dấu đã nhắc nhở"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#remindModal"
-                                                    onclick="openRemindModal(@w.WarningID, '@(ticket?.Code ?? $"PM{w.TicketID:D4}")', '@(reader?.FullName ?? reader?.UserName ?? "Bạn đọc")')">
-                                                <i class="bi bi-bell-fill"></i> Nhắc
-                                            </button>
+                                            bool recentlyReminded = recentlyRemindedTicketIds.Contains(w.TicketID);
+                                            if (recentlyReminded)
+                                            {
+                                                <button type="button"
+                                                        class="btn btn-sm btn-secondary rounded-3 px-2 py-1 fw-semibold opacity-75"
+                                                        disabled
+                                                        title="Đã nhắc lúc @(w.LastRemindedDate?.ToString("dd/MM/yyyy HH:mm")). Có thể nhắc lại sau @(w.LastRemindedDate?.AddHours(24).ToString("dd/MM HH:mm"))">
+                                                    <i class="bi bi-bell-check"></i> Đã nhắc
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button type="button"
+                                                        class="btn btn-sm btn-outline-primary rounded-3 px-2 py-1 fw-semibold"
+                                                        title="Gửi thông báo nhắc nhở tới độc giả"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#remindModal"
+                                                        onclick="openRemindModal(@w.WarningID, '@(ticket?.Code ?? $"PM{w.TicketID:D4}")', '@(reader?.FullName ?? reader?.UserName ?? "Bạn đọc")')">
+                                                    <i class="bi bi-bell-fill"></i> Nhắc
+                                                </button>
+                                            }
                                         }
                                         <a href="/Admin/Borrow/Detail/@w.TicketID"
                                            class="btn btn-sm btn-light border rounded-3 px-2 py-1 fw-semibold"
