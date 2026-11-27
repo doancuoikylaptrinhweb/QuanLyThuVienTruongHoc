@@ -392,8 +392,99 @@ namespace LibraryManagement.Controllers
             ViewBag.CurrentUser = user;
             ViewBag.TicketDetails = allDetails.GroupBy(d => d.TicketID).ToDictionary(g => g.Key, g => g.ToList());
             ViewBag.Books = _context.Books.Where(b => bookIds.Contains(b.BookID)).ToDictionary(b => b.BookID, b => b);
+            ViewBag.OverdueBooks = BuildReaderOverdueList(tickets, allDetails, ViewBag.Books as Dictionary<long, tblBook> ?? new Dictionary<long, tblBook>());
 
             return View(tickets);
+        }
+
+        // 7. DANH SÁCH SÁCH QUÁ HẠN CHƯA TRẢ CỦA ĐỘC GIẢ (/OverdueBooks)
+        [HttpGet]
+        [Route("/OverdueBooks")]
+        public IActionResult OverdueBooks()
+        {
+            int userId = GetCurrentUserId();
+            if (userId <= 0)
+            {
+                return Redirect("/Auth/Login?returnUrl=/OverdueBooks");
+            }
+
+            var user = _context.Users.Find(userId);
+            if (user == null)
+            {
+                return Redirect("/Auth/Login");
+            }
+
+            var tickets = _context.BorrowTickets
+                .Where(t => t.UserID == userId)
+                .OrderByDescending(t => t.TicketID)
+                .ToList();
+
+            var ticketIds = tickets.Select(t => t.TicketID).ToList();
+            var allDetails = _context.BorrowDetails.Where(d => ticketIds.Contains(d.TicketID)).ToList();
+            var bookIds = allDetails.Select(d => d.BookID).Distinct().ToList();
+            var books = _context.Books.Where(b => bookIds.Contains(b.BookID)).ToDictionary(b => b.BookID, b => b);
+
+            ViewBag.CurrentUser = user;
+            var overdueList = BuildReaderOverdueList(tickets, allDetails, books);
+            return View(overdueList);
+        }
+
+        private List<ReaderOverdueBookVM> BuildReaderOverdueList(
+            List<tblBorrowTicket> tickets,
+            List<tblBorrowDetail> allDetails,
+            Dictionary<long, tblBook> books)
+        {
+            DateTime today = DateTime.Today;
+            var detailsByTicket = allDetails
+                .Where(d => !d.IsReturned)
+                .GroupBy(d => d.TicketID)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            var result = new List<ReaderOverdueBookVM>();
+
+            foreach (var t in tickets)
+            {
+                if (t.Status == "Đã trả" || t.Status == "Từ chối" || t.Status == "Đã hủy" || t.Status == "Pending")
+                {
+                    continue;
+                }
+                if (t.DueDate.Date >= today)
+                {
+                    continue;
+                }
+                if (!detailsByTicket.TryGetValue(t.TicketID, out var unreturnedDetails) || unreturnedDetails.Count == 0)
+                {
+                    continue;
+                }
+
+                int overdueDays = Math.Max(1, (today - t.DueDate.Date).Days);
+                string severity = LibraryManagement.Services.OverdueWarningService.ClassifySeverity(overdueDays);
+                bool canReturn = t.Status == "Đang mượn" || t.Status == "Trả một phần" || t.Status == "Quá hạn";
+
+                foreach (var d in unreturnedDetails)
+                {
+                    books.TryGetValue(d.BookID, out var bk);
+                    result.Add(new ReaderOverdueBookVM
+                    {
+                        TicketID = t.TicketID,
+                        TicketCode = t.Code,
+                        TicketStatus = t.Status ?? "Đang mượn",
+                        BookID = d.BookID,
+                        BookCode = bk?.Code ?? $"MS{d.BookID:D4}",
+                        BookTitle = bk?.Title ?? $"Sách #{d.BookID}",
+                        BorrowDate = t.BorrowDate,
+                        DueDate = t.DueDate,
+                        OverdueDays = overdueDays,
+                        SeverityLevel = severity,
+                        CanRequestReturn = canReturn
+                    });
+                }
+            }
+
+            return result
+                .OrderByDescending(x => x.OverdueDays)
+                .ThenByDescending(x => x.TicketID)
+                .ToList();
         }
     }
 }
