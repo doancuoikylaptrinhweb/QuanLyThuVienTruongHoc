@@ -152,5 +152,30 @@ namespace LibraryManagement.Utilities
             _fallbackRole = string.Empty;
             _Message = string.Empty;
         }
+        // 8. Chuẩn hóa đường dẫn ảnh bìa sách để hoạt động đúng ở mọi route (/, /Lookup, /Book/Detail/{id}, /Admin/...)
+        public static string ResolveBookImage(string? imagePath)
+        {
+            const string defaultCover = "/images/books/clean-code.svg";
+            if (string.IsNullOrWhiteSpace(imagePath))
+            {
+                return defaultCover;
+            }
+
+            string trimmed = imagePath.Trim();
+            if (trimmed.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                trimmed.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
+                trimmed.StartsWith("data:", StringComparison.OrdinalIgnoreCase) ||
+                trimmed.StartsWith("/"))
+            {
+                return trimmed;
+            }
+
+            if (trimmed.StartsWith("~/"))
+            {
+                return "/" + trimmed.Substring(2);
+            }
+
+            return "/" + trimmed.TrimStart('/');
+        }
     }
 }

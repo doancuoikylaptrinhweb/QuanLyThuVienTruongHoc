@@ -1,4 +1,5 @@
 @using LibraryManagement.Models
+@using LibraryManagement.Utilities
 @model tblBook
 
 @{
@@ -6,7 +7,7 @@
     var author = ViewBag.Author as tblAuthor;
     var category = ViewBag.Category as tblCategory;
     var publisher = ViewBag.Publisher as tblPublisher;
-    string coverImg = !string.IsNullOrEmpty(Model.Images) ? Model.Images : "/images/books/clean-code.svg";
+    string coverImg = Functions.ResolveBookImage(Model.Images);
 }
 
 <!-- Breadcrumb -->
@@ -27,7 +28,7 @@
                     <img src="@coverImg" 
                          class="img-fluid rounded-3 shadow" alt="@Model.Title" 
                          style="max-height: 400px; width: 280px; object-fit: cover;"
-                         onerror="this.src='/admin/assets/img/card.jpg';">
+                         onerror="this.src='/images/books/clean-code.svg';">
                 </div>
                 
                 <div class="mt-2">
