@@ -213,14 +213,14 @@
             {
                 string detailUrl = $"/Book/Detail/{item.BookID}";
                 string authorName = authors != null && authors.ContainsKey(item.AuthorID) ? authors[item.AuthorID] : "Đang cập nhật";
-                string coverImg = !string.IsNullOrEmpty(item.Images) ? item.Images : "/images/books/clean-code.svg";
+                string coverImg = Functions.ResolveBookImage(item.Images);
 
                 <div class="col">
                     <div class="book-card-pro">
                         <!-- Book Cover Image -->
                         <div class="book-img-wrap">
                             <a href="@detailUrl">
-                                <img src="@coverImg" alt="@item.Title" onerror="this.src='/admin/assets/img/card.jpg';">
+                                <img src="@coverImg" alt="@item.Title" onerror="this.src='/images/books/clean-code.svg';">
                             </a>
                             <!-- Badge Mã sách (Top-left) -->
                             <div class="position-absolute top-0 start-0 m-2">
